@@ -1,960 +1,1400 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>水中を泳ぐ魚のゲーム</title>
-  <style>
-    html, body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #031826;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      touch-action: none;
-      user-select: none;
-    }
-    canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-    #hud {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      color: rgba(235, 252, 255, 0.96);
-      text-shadow: 0 2px 10px rgba(0, 20, 38, 0.9);
-      padding: max(14px, env(safe-area-inset-top)) 16px 16px;
-      box-sizing: border-box;
-    }
-    #scoreBox {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 15px;
-      border: 1px solid rgba(180, 245, 255, 0.3);
-      border-radius: 999px;
-      background: rgba(0, 28, 48, 0.38);
-      backdrop-filter: blur(8px);
-      font-weight: 800;
-      letter-spacing: 0.04em;
-      box-shadow: 0 8px 26px rgba(0, 0, 0, 0.18);
-    }
-    #score {
-      display: inline-block;
-      min-width: 1.2em;
-      font-size: clamp(22px, 4vw, 34px);
-      color: #fff99b;
-      transition: transform 0.12s ease;
-    }
-    #help {
-      position: fixed;
-      left: 16px;
-      bottom: max(14px, env(safe-area-inset-bottom));
-      max-width: min(760px, calc(100vw - 32px));
-      padding: 10px 13px;
-      border-radius: 16px;
-      background: rgba(0, 28, 48, 0.34);
-      border: 1px solid rgba(180, 245, 255, 0.22);
-      backdrop-filter: blur(8px);
-      font-size: clamp(12px, 2.4vw, 15px);
-      line-height: 1.55;
-    }
-    #centerMessage {
-      position: fixed;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      box-sizing: border-box;
-      pointer-events: auto;
-      background: radial-gradient(circle at center, rgba(0, 35, 58, 0.16), rgba(0, 8, 18, 0.58));
-      color: white;
-      text-align: center;
-    }
-    #panel {
-      width: min(430px, 92vw);
-      padding: 28px 22px 22px;
-      border: 1px solid rgba(190, 248, 255, 0.34);
-      border-radius: 28px;
-      background: rgba(2, 27, 47, 0.76);
-      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.44);
-      backdrop-filter: blur(12px);
-    }
-    #panel h1 {
-      margin: 0 0 8px;
-      font-size: clamp(32px, 8vw, 48px);
-      letter-spacing: 0.06em;
-    }
-    #finalScore {
-      margin: 6px 0 8px;
-      font-size: 19px;
-      color: #bff7ff;
-    }
-    #restartHint {
-      margin: 0 0 18px;
-      font-size: 13px;
-      color: rgba(235, 252, 255, 0.72);
-    }
-    #restartBtn {
-      appearance: none;
-      border: 0;
-      border-radius: 999px;
-      padding: 13px 23px;
-      font: inherit;
-      font-weight: 800;
-      color: #05304a;
-      background: linear-gradient(180deg, #fff5a6, #75edff);
-      box-shadow: 0 10px 26px rgba(91, 231, 255, 0.25);
-      cursor: pointer;
-    }
-    #restartBtn:active {
-      transform: translateY(1px) scale(0.99);
-    }
-  </style>
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
-      }
-    }
-  </script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>フィッシュフレンジー - 海のヌシをめざせ</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{
+    margin:0;width:100%;height:100%;overflow:hidden;background:#02101c;color:#eafcff;
+    font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;
+  }
+  canvas{display:block;width:100%;height:100%}
+  #ui{position:fixed;inset:0;pointer-events:none;z-index:5}
+  .hudTop{
+    position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;
+    padding:max(12px,env(safe-area-inset-top)) 14px 0;
+  }
+  #scoreWrap{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+  #scoreBox{
+    display:inline-flex;align-items:baseline;gap:8px;padding:8px 14px;border-radius:999px;
+    border:1px solid rgba(150,235,255,.28);background:rgba(2,28,48,.42);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 8px 26px rgba(0,0,0,.25);
+  }
+  #scoreLabel{font-size:12px;letter-spacing:.1em;color:#bff7ff;font-weight:800;opacity:.85}
+  #score{
+    display:inline-block;min-width:1.4em;font-size:clamp(24px,5.5vw,40px);font-weight:900;color:#fff3a0;
+    text-shadow:0 2px 12px rgba(0,30,50,.8);transition:transform .12s cubic-bezier(.3,1.6,.5,1);
+  }
+  #bestBox{
+    display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:900;color:#9fe9ff;
+    padding:3px 8px;letter-spacing:.06em;border-radius:999px;background:rgba(2,28,48,.22);
+  }
+  #bestBox b{color:#ffd86b}
+  #stageWrap{
+    display:inline-flex;flex-direction:column;gap:5px;width:min(200px,48vw);padding:7px 12px;border-radius:14px;
+    border:1px solid rgba(150,235,255,.22);background:rgba(2,28,48,.36);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  }
+  #stageName{font-size:13px;font-weight:900;letter-spacing:.04em;display:flex;align-items:center;gap:6px}
+  #stageName .ico{font-size:15px}
+  #stageBarBg{height:6px;border-radius:99px;background:rgba(255,255,255,.14);overflow:hidden}
+  #stageBar{height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,#7df0ff,#ffe26b,#ff67c7);transition:width .25s ease}
+  #soundBtn{
+    pointer-events:auto;width:42px;height:42px;flex:0 0 auto;border:1px solid rgba(150,235,255,.28);border-radius:50%;
+    background:rgba(2,28,48,.42);color:#eafcff;font-size:18px;cursor:pointer;
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;
+  }
+  #soundBtn:active{transform:scale(.94)}
+  #combo{
+    position:absolute;top:20%;left:50%;transform:translate(-50%,0);opacity:0;text-align:center;transition:opacity .18s ease;
+  }
+  #combo.show{opacity:1}
+  #comboMult{
+    font-size:clamp(40px,12vw,84px);font-weight:900;line-height:.9;color:#fff;
+    text-shadow:0 0 18px rgba(120,240,255,.9),0 4px 16px rgba(0,20,40,.6);
+  }
+  #comboLabel{font-size:clamp(11px,3vw,16px);font-weight:900;letter-spacing:.16em;color:#ffe26b;margin-top:2px;text-shadow:0 2px 10px rgba(0,20,40,.7)}
+  #comboBarBg{margin:7px auto 0;width:clamp(90px,30vw,160px);height:5px;border-radius:99px;background:rgba(255,255,255,.18);overflow:hidden}
+  #comboBar{height:100%;width:100%;background:linear-gradient(90deg,#ffd24a,#ff6ba8);border-radius:99px}
+  @keyframes comboPop{0%{transform:scale(.55)}55%{transform:scale(1.22)}100%{transform:scale(1)}}
+  #combo.bump #comboMult{animation:comboPop .26s ease}
+  #help{
+    position:absolute;left:50%;bottom:max(12px,env(safe-area-inset-bottom));transform:translateX(-50%);
+    max-width:min(620px,calc(100vw - 26px));text-align:center;padding:9px 14px;border-radius:14px;
+    background:rgba(2,28,48,.32);border:1px solid rgba(150,235,255,.18);
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);font-size:clamp(11px,2.6vw,14px);line-height:1.5;transition:opacity .6s ease;
+  }
+  #help.hide{opacity:0}
+  #help b{color:#ffd86b}
+  #flash{position:fixed;inset:0;pointer-events:none;z-index:6;background:#fff;opacity:0;mix-blend-mode:screen}
+  #vignette{
+    position:fixed;inset:0;pointer-events:none;z-index:4;
+    background:radial-gradient(ellipse at center,rgba(0,0,0,0) 48%,rgba(0,7,15,.57) 100%);
+  }
+  #dangerFlash{
+    position:fixed;inset:0;pointer-events:none;z-index:4;opacity:0;
+    background:radial-gradient(ellipse at center,rgba(255,20,70,0) 54%,rgba(255,20,70,.55) 100%);
+    transition:opacity .08s linear;
+  }
+  #banner{position:fixed;top:36%;left:50%;transform:translate(-50%,-50%);z-index:7;pointer-events:none;opacity:0;text-align:center}
+  #banner .big{
+    font-size:clamp(30px,9vw,66px);font-weight:900;letter-spacing:.04em;color:#fff;
+    text-shadow:0 0 26px rgba(255,220,110,.95),0 6px 20px rgba(0,20,40,.6);
+  }
+  #banner .sub{font-size:clamp(13px,3.4vw,19px);font-weight:900;color:#ffe9a6;letter-spacing:.2em;margin-top:4px}
+  @keyframes bannerShow{
+    0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}
+    16%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}
+    30%{transform:translate(-50%,-50%) scale(1)}
+    78%{opacity:1}
+    100%{opacity:0;transform:translate(-50%,-50%) scale(1.04)}
+  }
+  #banner.play{animation:bannerShow 1.7s ease forwards}
+  #popups{position:fixed;inset:0;pointer-events:none;z-index:6;overflow:hidden}
+  @keyframes popRise{
+    0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}
+    18%{opacity:1;transform:translate(-50%,-95%) scale(1.12)}
+    100%{opacity:0;transform:translate(-50%,-220%) scale(1)}
+  }
+  .pop{
+    position:absolute;font-weight:900;color:#fff6b0;text-shadow:0 2px 10px rgba(0,20,40,.7);white-space:nowrap;
+    animation:popRise .9s ease-out forwards;will-change:transform,opacity;
+  }
+  .pop.big{color:#fff;text-shadow:0 0 16px rgba(120,240,255,.95),0 3px 12px rgba(0,20,40,.7)}
+  .overlay{
+    position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:22px;pointer-events:auto;
+    background:radial-gradient(circle at center,rgba(0,40,66,.32),rgba(0,6,14,.82));
+    backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+  }
+  .overlay.hidden{display:none}
+  .panel{
+    width:min(450px,93vw);padding:28px 22px 22px;border:1px solid rgba(180,245,255,.3);border-radius:28px;
+    background:rgba(3,26,46,.84);box-shadow:0 30px 90px rgba(0,0,0,.5);text-align:center;
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  }
+  .panel h1{margin:0 0 6px;font-size:clamp(30px,8vw,46px);letter-spacing:.04em}
+  .panel .tag{font-size:13px;color:#bff7ff;letter-spacing:.18em;font-weight:900;opacity:.9;margin-bottom:14px}
+  .scoreLine{font-size:16px;color:#dff7ff;margin:4px 0}
+  .scoreLine b{font-size:31px;color:#fff3a0;font-weight:900}
+  #record{
+    display:none;margin:10px auto 4px;padding:5px 14px;border-radius:99px;background:linear-gradient(90deg,#ffcf4a,#ff8bd0);
+    color:#3a1640;font-weight:900;font-size:13px;letter-spacing:.06em;width:max-content;
+  }
+  #record.show{display:block;animation:recordPulse 1s ease infinite alternate}
+  @keyframes recordPulse{from{transform:scale(1)}to{transform:scale(1.07)}}
+  .btnRow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+  .btn{
+    appearance:none;border:0;border-radius:999px;padding:13px 20px;font:inherit;font-weight:900;cursor:pointer;letter-spacing:.02em;
+    transition:transform .08s ease;
+  }
+  .btn:active{transform:translateY(1px) scale(.98)}
+  .btn.primary{color:#05304a;background:linear-gradient(180deg,#fff5a6,#75edff);box-shadow:0 12px 28px rgba(91,231,255,.3);font-size:17px;padding:15px 28px}
+  .btn.share{color:#06324a;background:linear-gradient(180deg,#ffe98a,#ff91cc);box-shadow:0 10px 24px rgba(255,120,200,.22)}
+  .btn.ghost{color:#eafcff;background:rgba(255,255,255,.1);border:1px solid rgba(160,235,255,.35)}
+  .btn.x{color:#fff;background:#0a0a0a;border:1px solid rgba(255,255,255,.25)}
+  .hint{margin-top:14px;font-size:12px;color:rgba(220,245,255,.62)}
+  .howto{text-align:left;font-size:13.5px;line-height:1.7;color:#dff3ff;margin:8px auto 4px;max-width:340px}
+  .howto b{color:#ffd86b}
+  .spin{font-size:clamp(42px,13vw,72px);margin-bottom:4px;animation:floaty 3s ease-in-out infinite}
+  @keyframes floaty{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-8px) rotate(3deg)}}
+  #toast{
+    position:fixed;left:50%;bottom:17%;transform:translateX(-50%) translateY(10px);z-index:12;
+    background:rgba(10,40,64,.95);border:1px solid rgba(160,235,255,.4);color:#eafcff;
+    padding:10px 18px;border-radius:999px;font-weight:900;font-size:14px;opacity:0;pointer-events:none;
+    transition:opacity .25s ease,transform .25s ease;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
 </head>
 <body>
-  <div id="hud">
-    <div id="scoreBox">スコア <span id="score">0</span></div>
-    <div id="help">操作: マウス/タップで魚が追従。WASD・矢印キーでも移動できます。光る餌を食べると成長。大きな敵の魚に触れるとゲームオーバー！</div>
+  <div id="ui">
+    <div class="hudTop">
+      <div id="scoreWrap">
+        <div id="scoreBox"><span id="scoreLabel">SCORE</span><span id="score">0</span></div>
+        <div id="stageWrap">
+          <div id="stageName"><span class="ico" id="stageIco">🐟</span><span id="stageNameTxt">小魚</span></div>
+          <div id="stageBarBg"><div id="stageBar"></div></div>
+        </div>
+        <div id="bestBox">BEST <b id="best">0</b></div>
+      </div>
+      <button id="soundBtn" aria-label="sound">🔊</button>
+    </div>
+    <div id="combo">
+      <div id="comboMult">2</div>
+      <div id="comboLabel">COMBO ×2</div>
+      <div id="comboBarBg"><div id="comboBar"></div></div>
+    </div>
+    <div id="help">🐟 指 / マウスで追従。餌と<b>小さい魚</b>を食べて成長！ <b>緑の光=食べられる</b> / <b>赤い光=危険</b>。連続で食べてコンボ倍率UP！</div>
   </div>
 
-  <div id="centerMessage">
-    <div id="panel">
-      <h1>GAME OVER</h1>
-      <div id="finalScore">スコア: 0</div>
-      <div id="restartHint">Enter / Space でもリスタートできます</div>
-      <button id="restartBtn">もう一度泳ぐ</button>
+  <div id="banner"><div class="big" id="bannerBig"></div><div class="sub" id="bannerSub"></div></div>
+  <div id="vignette"></div>
+  <div id="dangerFlash"></div>
+  <div id="flash"></div>
+  <div id="popups"></div>
+
+  <div id="startScreen" class="overlay">
+    <div class="panel">
+      <div class="spin">🐠</div>
+      <h1>フィッシュフレンジー</h1>
+      <div class="tag">海のヌシをめざせ</div>
+      <div class="howto">
+        <div>🎯 餌と<b>自分より小さい魚</b>を食べて一気に成長</div>
+        <div>🟢 緑の光=食べ頃 ／ 🔴 赤の光=今は逃げろ</div>
+        <div>🔥 連続捕食でコンボ倍率アップ</div>
+        <div>🏆 小魚 → 中型 → 大型 → <b>ヌシ</b>へ進化</div>
+      </div>
+      <div class="btnRow"><button class="btn primary" id="startBtn">タップでスタート</button></div>
+      <div class="hint">スマホは親指1本でOK ／ PCはマウス・WASD</div>
     </div>
   </div>
 
-  <script type="module">
-    import * as THREE from "three";
+  <div id="gameOver" class="overlay hidden">
+    <div class="panel">
+      <h1>GAME OVER</h1>
+      <div id="record">🎉 ニューレコード！</div>
+      <div class="scoreLine">スコア <b id="finalScore">0</b></div>
+      <div class="scoreLine">ベスト <span id="finalBest" style="font-weight:900;color:#ffd86b;">0</span> ／ 到達 <span id="finalStage">小魚</span></div>
+      <div class="btnRow">
+        <button class="btn share" id="shareBtn">📣 記録を共有</button>
+        <button class="btn ghost" id="copyBtn">📋 コピー</button>
+        <button class="btn x" id="xBtn">𝕏</button>
+      </div>
+      <div class="btnRow"><button class="btn primary" id="restartBtn">もう一度泳ぐ</button></div>
+      <div class="hint">画面タップ / Enter / Space でも即リスタート</div>
+    </div>
+  </div>
 
-    const scoreEl = document.getElementById("score");
-    const centerMessage = document.getElementById("centerMessage");
-    const finalScoreEl = document.getElementById("finalScore");
-    const restartBtn = document.getElementById("restartBtn");
+  <div id="toast"></div>
 
-    const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x073a52, 0.013);
+<script type="module">
+import * as THREE from "three";
 
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
-    camera.position.set(0, 0, 34);
-    camera.lookAt(0, 0, 0);
+const $ = (id) => document.getElementById(id);
+const clamp = THREE.MathUtils.clamp;
+const rand = (a,b) => a + Math.random() * (b - a);
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      alpha: false,
-      powerPreference: "high-performance"
-    });
-    renderer.setClearColor(0x031826, 1);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    document.body.appendChild(renderer.domElement);
+const scoreEl=$("score"), bestEl=$("best"), stageNameTxt=$("stageNameTxt"), stageIco=$("stageIco"), stageBar=$("stageBar");
+const comboEl=$("combo"), comboMultEl=$("comboMult"), comboLabelEl=$("comboLabel"), comboBar=$("comboBar");
+const helpEl=$("help"), flashEl=$("flash"), dangerFlashEl=$("dangerFlash"), bannerEl=$("banner"), bannerBig=$("bannerBig"), bannerSub=$("bannerSub");
+const popupsEl=$("popups"), toastEl=$("toast"), startScreen=$("startScreen"), gameOverEl=$("gameOver");
+const finalScoreEl=$("finalScore"), finalBestEl=$("finalBest"), finalStageEl=$("finalStage"), recordEl=$("record");
 
-    const clock = new THREE.Clock();
-    const tmpVec2 = new THREE.Vector2();
-    const tmpVec3 = new THREE.Vector3();
-    const dummy = new THREE.Object3D();
+const IS_TOUCH = (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) || "ontouchstart" in window;
+const IS_SMALL = Math.min(window.innerWidth, window.innerHeight) < 680;
+const LOW = IS_TOUCH || IS_SMALL;
+const DPR_CAP = LOW ? 1.5 : 2;
 
-    let bounds = { minX: -16, maxX: 16, minY: -10, maxY: 10, width: 32, height: 20 };
-    let score = 0;
-    let gameOver = false;
-    let playerScale = 1;
-    let pointerActive = true;
-    let scorePulseT = 0;
+const ENEMY_POOL = LOW ? 10 : 15;
+const FOOD_COUNT = LOW ? 24 : 38;
+const PARTICLE_COUNT = LOW ? 120 : 190;
+const TRAIL_COUNT = LOW ? 42 : 64;
+const BUBBLE_COUNT = LOW ? 62 : 94;
+const PLANKTON_COUNT = LOW ? 120 : 210;
+const BOID_COUNT = LOW ? 14 : 24;
+const BOKEH_COUNT = LOW ? 10 : 17;
 
-    const pointerTarget = new THREE.Vector2(0, 0);
-    const keys = Object.create(null);
+const MAX_FISH_SPEED = 4.8;
+const COMBO_TIME = 2.35;
+const PLAYER_MAX_SCALE = 5.25;
 
-    const bgUniforms = {
-      uTime: { value: 0 },
-      uAspect: { value: window.innerWidth / window.innerHeight }
-    };
+const STAGES = [
+  { name:"小魚", min:1.00, icon:"🐟", color:0xffd86b },
+  { name:"中型魚", min:1.55, icon:"🐠", color:0x7df0ff },
+  { name:"大型魚", min:2.45, icon:"🐡", color:0xb98bff },
+  { name:"ヌシ", min:3.60, icon:"🦈", color:0xff5b9e }
+];
 
-    const background = new THREE.Mesh(
-      new THREE.PlaneGeometry(140, 90, 1, 1),
-      new THREE.ShaderMaterial({
-        depthWrite: false,
-        depthTest: false,
-        uniforms: bgUniforms,
-        vertexShader: `
-          varying vec2 vUv;
-          void main() {
-            vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-          }
-        `,
-        fragmentShader: `
-          precision mediump float;
-          varying vec2 vUv;
-          uniform float uTime;
-          uniform float uAspect;
+const FISH_COLORS = [
+  {b:0x4a90d9,f:0x9fd8ff},{b:0x8e44ad,f:0xe08cff},{b:0x16a085,f:0x8ff0d8},
+  {b:0xe67e22,f:0xffd28c},{b:0xc0392b,f:0xff9b8c},{b:0x2c3e80,f:0x88a0ff},
+  {b:0xd81b8c,f:0xffa6e6},{b:0x1abc9c,f:0xc8fff1}
+];
 
-          float wave(vec2 p) {
-            float a = sin(p.x * 18.0 + uTime * 0.9 + sin(p.y * 8.0 + uTime * 0.45));
-            float b = sin((p.x + p.y) * 28.0 - uTime * 1.25);
-            float c = sin(length(p - vec2(0.5, 0.62)) * 42.0 - uTime * 1.7);
-            return (a + b + c) / 3.0;
-          }
+let started=false, gameOver=false;
+let score=0, best=0, goAt=0;
+let playerScale=1, stageIndex=0;
+let comboCount=0, combo=1, comboTimer=0;
+let shake=0, globalSpeed=1, pointerActive=true, dangerPulse=0;
+let camBaseX=0, camBaseY=0, muted=false;
 
-          void main() {
-            vec2 uv = vUv;
-            uv.x += sin(uv.y * 10.0 + uTime * 0.45) * 0.015;
-            uv.y += sin(uv.x * 7.0 - uTime * 0.35) * 0.012;
+try{ best=parseInt(localStorage.getItem("fishFrenzyBest_v2")) || 0; }catch(e){ best=0; }
+bestEl.textContent=best;
 
-            vec3 deep = vec3(0.005, 0.055, 0.115);
-            vec3 mid = vec3(0.02, 0.22, 0.34);
-            vec3 top = vec3(0.08, 0.58, 0.68);
-            vec3 col = mix(deep, mid, smoothstep(0.0, 1.0, uv.y));
-            col = mix(col, top, pow(max(uv.y, 0.0), 2.3) * 0.55);
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x063247, 0.013);
 
-            float caustic = pow(abs(wave(uv * vec2(uAspect, 1.0))), 7.0) * 0.55;
-            float shafts = smoothstep(0.72, 1.0, uv.y) * (0.5 + 0.5 * sin((uv.x * 16.0) + uTime * 0.32));
-            float vignette = smoothstep(0.92, 0.25, distance(uv, vec2(0.5, 0.54)));
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 220);
+camera.position.set(0,0,34);
+camera.lookAt(0,0,0);
 
-            col += vec3(0.18, 0.52, 0.62) * caustic * (0.35 + uv.y * 0.85);
-            col += vec3(0.13, 0.36, 0.42) * shafts * 0.18;
-            col *= 0.68 + vignette * 0.42;
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:false, powerPreference:"high-performance" });
+renderer.setClearColor(0x02101c, 1);
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, DPR_CAP));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
 
-            gl_FragColor = vec4(col, 1.0);
-          }
-        `
-      })
-    );
-    background.position.z = -40;
-    scene.add(background);
+const clock = new THREE.Clock();
+const tmpVec2 = new THREE.Vector2();
+const tmpVec3 = new THREE.Vector3();
+const tmpColor = new THREE.Color();
+const WHITE = new THREE.Color(0xffffff);
+const dummy = new THREE.Object3D();
 
-    const ambient = new THREE.HemisphereLight(0xa8f4ff, 0x001423, 1.15);
-    scene.add(ambient);
+let bounds = { minX:-16, maxX:16, minY:-10, maxY:10, width:32, height:20 };
+const pointerTarget = new THREE.Vector2(0,0);
+const keys = Object.create(null);
 
-    const sun = new THREE.DirectionalLight(0xd3fbff, 1.9);
-    sun.position.set(-8, 14, 12);
-    scene.add(sun);
+function makeSoftCircle(){
+  const c=document.createElement("canvas");
+  c.width=c.height=128;
+  const g=c.getContext("2d");
+  const r=g.createRadialGradient(64,64,0,64,64,64);
+  r.addColorStop(0,"rgba(255,255,255,1)");
+  r.addColorStop(.28,"rgba(255,255,255,.86)");
+  r.addColorStop(1,"rgba(255,255,255,0)");
+  g.fillStyle=r;
+  g.fillRect(0,0,128,128);
+  const t=new THREE.CanvasTexture(c);
+  t.colorSpace=THREE.SRGBColorSpace;
+  return t;
+}
+const softTex = makeSoftCircle();
 
-    const glowLight = new THREE.PointLight(0x5cf3ff, 1.6, 28, 2);
-    glowLight.position.set(6, 5, 8);
-    scene.add(glowLight);
-
-    function makeRay(index) {
-      const mat = new THREE.ShaderMaterial({
-        transparent: true,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-        uniforms: {
-          uTime: { value: 0 },
-          uSeed: { value: index * 13.17 }
-        },
-        vertexShader: `
-          varying vec2 vUv;
-          uniform float uTime;
-          uniform float uSeed;
-          void main() {
-            vUv = uv;
-            vec3 p = position;
-            p.x += sin(p.y * 0.16 + uTime * 0.45 + uSeed) * 0.35;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
-          }
-        `,
-        fragmentShader: `
-          varying vec2 vUv;
-          uniform float uTime;
-          uniform float uSeed;
-          void main() {
-            float side = smoothstep(0.0, 0.5, vUv.x) * smoothstep(1.0, 0.5, vUv.x);
-            float fade = smoothstep(0.0, 0.18, vUv.y) * smoothstep(1.0, 0.28, vUv.y);
-            float flicker = 0.65 + 0.35 * sin(uTime * 0.7 + uSeed);
-            gl_FragColor = vec4(0.34, 0.9, 1.0, side * fade * flicker * 0.13);
-          }
-        `
-      });
-
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(4.5, 42, 1, 8), mat);
-      mesh.position.set(-18 + index * 6.0, 2.4, -10 - index * 0.4);
-      mesh.rotation.z = THREE.MathUtils.degToRad(-12 + index * 4);
-      return mesh;
-    }
-
-    const rays = [];
-    for (let i = 0; i < 7; i++) {
-      const ray = makeRay(i);
-      rays.push(ray);
-      scene.add(ray);
-    }
-
-    function createFish(opts) {
-      const group = new THREE.Group();
-
-      const bodyMat = new THREE.MeshStandardMaterial({
-        color: opts.body,
-        roughness: 0.42,
-        metalness: 0.02,
-        emissive: opts.enemy ? 0x180018 : 0x4a1a00,
-        emissiveIntensity: opts.enemy ? 0.16 : 0.08
-      });
-
-      const finMat = new THREE.MeshStandardMaterial({
-        color: opts.fin,
-        roughness: 0.5,
-        metalness: 0.0,
-        side: THREE.DoubleSide,
-        emissive: opts.enemy ? 0x1b0022 : 0x331500,
-        emissiveIntensity: 0.14
-      });
-
-      const body = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 18), bodyMat);
-      body.scale.set(1.42, 0.62, 0.5);
-      group.add(body);
-
-      const tailShape = new THREE.Shape();
-      tailShape.moveTo(0, 0);
-      tailShape.lineTo(-0.95, 0.72);
-      tailShape.lineTo(-0.62, 0.0);
-      tailShape.lineTo(-0.95, -0.72);
-      tailShape.closePath();
-      const tail = new THREE.Mesh(new THREE.ShapeGeometry(tailShape), finMat);
-      tail.position.set(-1.2, 0, 0);
-      group.add(tail);
-
-      const topFinShape = new THREE.Shape();
-      topFinShape.moveTo(-0.4, 0.5);
-      topFinShape.lineTo(0.25, 1.05);
-      topFinShape.lineTo(0.62, 0.42);
-      topFinShape.closePath();
-      const topFin = new THREE.Mesh(new THREE.ShapeGeometry(topFinShape), finMat);
-      group.add(topFin);
-
-      const bottomFinShape = new THREE.Shape();
-      bottomFinShape.moveTo(-0.2, -0.46);
-      bottomFinShape.lineTo(0.5, -1.0);
-      bottomFinShape.lineTo(0.8, -0.4);
-      bottomFinShape.closePath();
-      const bottomFin = new THREE.Mesh(new THREE.ShapeGeometry(bottomFinShape), finMat);
-      group.add(bottomFin);
-
-      const sideFinShape = new THREE.Shape();
-      sideFinShape.moveTo(0.1, 0.0);
-      sideFinShape.lineTo(0.78, -0.6);
-      sideFinShape.lineTo(0.6, 0.05);
-      sideFinShape.closePath();
-      const sideFinGeo = new THREE.ShapeGeometry(sideFinShape);
-      const sideFinA = new THREE.Mesh(sideFinGeo, finMat);
-      sideFinA.position.z = 0.42;
-      const sideFinB = new THREE.Mesh(sideFinGeo, finMat);
-      sideFinB.position.z = -0.42;
-      group.add(sideFinA, sideFinB);
-
-      const eyeWhiteGeo = new THREE.SphereGeometry(0.13, 12, 10);
-      const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
-      const pupilGeo = new THREE.SphereGeometry(0.06, 10, 8);
-      const pupilMat = new THREE.MeshBasicMaterial({ color: opts.enemy ? 0x2a0008 : 0x05101a });
-
-      for (const sgn of [1, -1]) {
-        const eye = new THREE.Mesh(eyeWhiteGeo, eyeWhiteMat);
-        eye.position.set(0.9, 0.2, 0.34 * sgn);
-        group.add(eye);
-
-        const pupil = new THREE.Mesh(pupilGeo, pupilMat);
-        pupil.position.set(0.95, 0.19, 0.42 * sgn);
-        group.add(pupil);
+const bgUniforms = { uTime:{value:0}, uAspect:{value:window.innerWidth/window.innerHeight} };
+const background = new THREE.Mesh(
+  new THREE.PlaneGeometry(160,100,1,1),
+  new THREE.ShaderMaterial({
+    depthWrite:false, depthTest:false, uniforms:bgUniforms,
+    vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+    fragmentShader:`
+      precision mediump float;
+      varying vec2 vUv;
+      uniform float uTime;
+      uniform float uAspect;
+      float wave(vec2 p){
+        float a=sin(p.x*16.0+uTime*.9+sin(p.y*8.0+uTime*.45));
+        float b=sin((p.x+p.y)*26.0-uTime*1.25);
+        float c=sin(length(p-vec2(.5,.62))*40.0-uTime*1.7);
+        return (a+b+c)/3.0;
       }
+      void main(){
+        vec2 uv=vUv;
+        uv.x+=sin(uv.y*10.0+uTime*.45)*.015;
+        uv.y+=sin(uv.x*7.0-uTime*.35)*.012;
+        vec3 deep=vec3(.004,.05,.11), mid=vec3(.02,.22,.35), top=vec3(.09,.6,.7);
+        vec3 col=mix(deep,mid,smoothstep(0.0,1.0,uv.y));
+        col=mix(col,top,pow(max(uv.y,0.0),2.2)*.6);
+        float caustic=pow(abs(wave(uv*vec2(uAspect,1.0))),6.0)*.7;
+        float caustic2=pow(abs(wave(uv*vec2(uAspect,1.0)*1.7+vec2(.3))),9.0)*.5;
+        float shafts=smoothstep(.66,1.0,uv.y)*(.5+.5*sin((uv.x*16.0)+uTime*.32));
+        float vig=smoothstep(.95,.2,distance(uv,vec2(.5,.54)));
+        col+=vec3(.2,.55,.65)*(caustic+caustic2)*(.35+uv.y*.85);
+        col+=vec3(.13,.36,.42)*shafts*.2;
+        col*=.66+vig*.45;
+        gl_FragColor=vec4(col,1.0);
+      }`
+  })
+);
+background.position.z=-42;
+background.renderOrder=-10;
+scene.add(background);
 
-      const mouth = new THREE.Mesh(
-        new THREE.TorusGeometry(0.085, 0.02, 8, 18, Math.PI),
-        new THREE.MeshBasicMaterial({ color: opts.enemy ? 0x2a0020 : 0x5a2400 })
-      );
-      mouth.position.set(1.28, -0.08, 0);
-      mouth.rotation.z = -0.2;
-      group.add(mouth);
+const ambient = new THREE.HemisphereLight(0xa8f4ff, 0x001423, 1.15);
+scene.add(ambient);
+const sun = new THREE.DirectionalLight(0xd3fbff, 1.9);
+sun.position.set(-8,14,12);
+scene.add(sun);
+const glowLight = new THREE.PointLight(0x5cf3ff, 1.55, 30, 2);
+glowLight.position.set(6,5,8);
+scene.add(glowLight);
 
-      group.userData.tail = tail;
-      group.userData.sideFins = [sideFinA, sideFinB];
-      group.userData.body = body;
-      group.userData.flip = 0;
-      group.userData.facingLeft = false;
+const rays=[];
+function makeRay(i){
+  const mat=new THREE.ShaderMaterial({
+    transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
+    uniforms:{ uTime:{value:0}, uSeed:{value:i*13.17} },
+    vertexShader:`varying vec2 vUv;uniform float uTime;uniform float uSeed;void main(){vUv=uv;vec3 p=position;p.x+=sin(p.y*.16+uTime*.45+uSeed)*.35;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);}`,
+    fragmentShader:`varying vec2 vUv;uniform float uTime;uniform float uSeed;void main(){float side=smoothstep(0.0,.5,vUv.x)*smoothstep(1.0,.5,vUv.x);float fade=smoothstep(0.0,.18,vUv.y)*smoothstep(1.0,.28,vUv.y);float fl=.65+.35*sin(uTime*.7+uSeed);gl_FragColor=vec4(.34,.9,1.0,side*fade*fl*.13);}`
+  });
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(4.5,46,1,8),mat);
+  m.position.set(-18+i*6,2.4,-12-i*.4);
+  m.rotation.z=THREE.MathUtils.degToRad(-12+i*4);
+  return m;
+}
+for(let i=0;i<7;i++){ const r=makeRay(i); rays.push(r); scene.add(r); }
 
-      return group;
+function createFish(opts){
+  const group=new THREE.Group();
+  const bodyColor = new THREE.Color(opts.body);
+  const finColor = new THREE.Color(opts.fin);
+  const bodyMat=new THREE.MeshStandardMaterial({
+    color:bodyColor, roughness:.4, metalness:.05,
+    emissive:bodyColor.clone().multiplyScalar(.14), emissiveIntensity:.62
+  });
+  const finMat=new THREE.MeshStandardMaterial({
+    color:finColor, roughness:.5, metalness:0, side:THREE.DoubleSide,
+    emissive:finColor.clone().multiplyScalar(.12), emissiveIntensity:.5
+  });
+
+  const body=new THREE.Mesh(new THREE.SphereGeometry(1,22,15),bodyMat);
+  body.scale.set(1.42,.62,.5);
+  group.add(body);
+
+  const tailShape=new THREE.Shape();
+  tailShape.moveTo(0,0); tailShape.lineTo(-.95,.72); tailShape.lineTo(-.62,0); tailShape.lineTo(-.95,-.72); tailShape.closePath();
+  const tail=new THREE.Mesh(new THREE.ShapeGeometry(tailShape),finMat);
+  tail.position.set(-1.2,0,0);
+  group.add(tail);
+
+  const topShape=new THREE.Shape();
+  topShape.moveTo(-.4,.5); topShape.lineTo(.25,1.05); topShape.lineTo(.62,.42); topShape.closePath();
+  group.add(new THREE.Mesh(new THREE.ShapeGeometry(topShape),finMat));
+
+  const botShape=new THREE.Shape();
+  botShape.moveTo(-.2,-.46); botShape.lineTo(.5,-1.0); botShape.lineTo(.8,-.4); botShape.closePath();
+  group.add(new THREE.Mesh(new THREE.ShapeGeometry(botShape),finMat));
+
+  const sideShape=new THREE.Shape();
+  sideShape.moveTo(.1,0); sideShape.lineTo(.78,-.6); sideShape.lineTo(.6,.05); sideShape.closePath();
+  const sideGeo=new THREE.ShapeGeometry(sideShape);
+  const sideA=new THREE.Mesh(sideGeo,finMat); sideA.position.z=.42;
+  const sideB=new THREE.Mesh(sideGeo,finMat); sideB.position.z=-.42;
+  group.add(sideA,sideB);
+
+  const eyeW=new THREE.SphereGeometry(.13,10,8);
+  const eyeWMat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.3});
+  const pupG=new THREE.SphereGeometry(.06,8,6);
+  const pupMat=new THREE.MeshBasicMaterial({color:0x05101a});
+  for(const s of [1,-1]){
+    const e=new THREE.Mesh(eyeW,eyeWMat);
+    e.position.set(.9,.2,.34*s);
+    group.add(e);
+    const p=new THREE.Mesh(pupG,pupMat);
+    p.position.set(.95,.19,.42*s);
+    group.add(p);
+  }
+
+  const mouth = new THREE.Mesh(
+    new THREE.TorusGeometry(.085,.02,8,16,Math.PI),
+    new THREE.MeshBasicMaterial({color:0x3b1630})
+  );
+  mouth.position.set(1.28,-.08,0);
+  mouth.rotation.z=-.2;
+  group.add(mouth);
+
+  const halo=new THREE.Sprite(new THREE.SpriteMaterial({
+    map:softTex, color:0x66ff99, transparent:true, opacity:0,
+    depthWrite:false, depthTest:false, blending:THREE.AdditiveBlending
+  }));
+  halo.scale.set(3,3,1);
+  halo.position.set(-.1,0,-.25);
+  group.add(halo);
+
+  group.userData.tail=tail;
+  group.userData.sideFins=[sideA,sideB];
+  group.userData.body=body;
+  group.userData.halo=halo;
+  group.userData.flip=0;
+  group.userData.facingLeft=false;
+  return group;
+}
+
+const player=createFish({body:0xffa12e, fin:0xffe07a});
+player.userData.halo.material.color.set(STAGES[0].color);
+player.userData.vx=0;
+player.userData.vy=0;
+scene.add(player);
+
+const FOOD_TINTS=[new THREE.Color(0xfff36c),new THREE.Color(0x8ff0ff),new THREE.Color(0xff9de8),new THREE.Color(0xa6ffb0)];
+const foodMesh=new THREE.InstancedMesh(
+  new THREE.PlaneGeometry(1,1),
+  new THREE.MeshBasicMaterial({map:softTex,color:0xffffff,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}),
+  FOOD_COUNT
+);
+foodMesh.frustumCulled=false;
+scene.add(foodMesh);
+const foods=[];
+let foodColorDirty=false;
+for(let i=0;i<FOOD_COUNT;i++){
+  foods.push({x:0,y:0,z:0,phase:0,speed:0,radius:0,ci:0});
+  foodMesh.setColorAt(i,FOOD_TINTS[0]);
+}
+
+const enemies=[];
+function pickRatio(){
+  const ratios=[.42,.55,.70,.85,1.12,1.45,1.90,2.35];
+  const w=[3.2,3.1,2.6,1.8,2.1,1.45,.9,.45];
+  let total=0;
+  for(const x of w) total+=x;
+  let r=Math.random()*total;
+  for(let i=0;i<w.length;i++){ r-=w[i]; if(r<=0) return ratios[i]; }
+  return .7;
+}
+function spawnSize(){
+  return clamp(playerScale*pickRatio(), .5, 6.4);
+}
+for(let i=0;i<ENEMY_POOL;i++){
+  const c=FISH_COLORS[i%FISH_COLORS.length];
+  const e=createFish({body:c.b, fin:c.f});
+  e.userData.phase=Math.random()*Math.PI*2;
+  e.userData.baseSpeed=1.3+Math.random()*1.1;
+  e.userData.size=1;
+  e.userData.velocity=new THREE.Vector2(Math.random()<.5?-1:1,(Math.random()-.5)*.5).normalize();
+  enemies.push(e);
+  scene.add(e);
+}
+
+const particleMesh=new THREE.InstancedMesh(
+  new THREE.PlaneGeometry(1,1),
+  new THREE.MeshBasicMaterial({map:softTex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}),
+  PARTICLE_COUNT
+);
+particleMesh.frustumCulled=false;
+scene.add(particleMesh);
+const particleData=[];
+let pIdx=0;
+for(let i=0;i<PARTICLE_COUNT;i++){
+  particleData.push({life:0,maxLife:1,x:0,y:0,z:0,vx:0,vy:0,vz:0,size:.3,r:1,g:1,b:1});
+  particleMesh.setColorAt(i,tmpColor.setRGB(0,0,0));
+}
+
+const trailMesh=new THREE.InstancedMesh(
+  new THREE.SphereGeometry(.1,6,5),
+  new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.85,blending:THREE.AdditiveBlending,depthWrite:false}),
+  TRAIL_COUNT
+);
+trailMesh.frustumCulled=false;
+scene.add(trailMesh);
+const trail=[];
+let trailIndex=0, trailTimer=0;
+for(let i=0;i<TRAIL_COUNT;i++){
+  trail.push({life:0,maxLife:1,x:0,y:0,z:0,size:0,vy:0,sway:0});
+  trailMesh.setColorAt(i,tmpColor.setRGB(0,0,0));
+}
+
+const bubbleMesh=new THREE.InstancedMesh(
+  new THREE.SphereGeometry(.08,7,6),
+  new THREE.MeshStandardMaterial({color:0xcdfaff,transparent:true,opacity:.42,roughness:.08,emissive:0x4bdcff,emissiveIntensity:.12}),
+  BUBBLE_COUNT
+);
+bubbleMesh.frustumCulled=false;
+scene.add(bubbleMesh);
+const bubbles=[];
+for(let i=0;i<BUBBLE_COUNT;i++){
+  bubbles.push({x:0,y:0,z:-5+Math.random()*10,r:.45+Math.random()*1.15,speed:1+Math.random()*1.9,phase:Math.random()*Math.PI*2});
+}
+
+const planktonGeo=new THREE.BufferGeometry();
+const planktonPos=new Float32Array(PLANKTON_COUNT*3);
+const planktonSeed=new Float32Array(PLANKTON_COUNT);
+for(let i=0;i<PLANKTON_COUNT;i++){
+  planktonSeed[i]=Math.random()*Math.PI*2;
+  planktonPos[i*3+2]=-8+Math.random()*9;
+}
+planktonGeo.setAttribute("position",new THREE.BufferAttribute(planktonPos,3));
+const plankton=new THREE.Points(planktonGeo,new THREE.PointsMaterial({color:0xb9f8ff,size:.05,transparent:true,opacity:.55,depthWrite:false}));
+plankton.frustumCulled=false;
+scene.add(plankton);
+
+const boidGeo=new THREE.ConeGeometry(.22,.8,6);
+boidGeo.rotateZ(-Math.PI/2);
+const boidMesh=new THREE.InstancedMesh(
+  boidGeo,
+  new THREE.MeshStandardMaterial({color:0x2f6f86,emissive:0x0a2230,emissiveIntensity:.5,roughness:.6}),
+  BOID_COUNT
+);
+boidMesh.frustumCulled=false;
+scene.add(boidMesh);
+const boids=[];
+for(let i=0;i<BOID_COUNT;i++){
+  boids.push({x:rand(-20,20),y:rand(-12,12),vx:rand(-1,1),vy:rand(-1,1),z:-6-Math.random()*3});
+}
+
+const bokehMesh=new THREE.InstancedMesh(
+  new THREE.PlaneGeometry(1,1),
+  new THREE.MeshBasicMaterial({map:softTex,color:0xffffff,transparent:true,opacity:.16,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending}),
+  BOKEH_COUNT
+);
+bokehMesh.frustumCulled=false;
+bokehMesh.renderOrder=9;
+scene.add(bokehMesh);
+const bokeh=[];
+for(let i=0;i<BOKEH_COUNT;i++){
+  const fg=Math.random()<.7;
+  bokeh.push({x:rand(-26,26),y:rand(-16,16),z:fg?rand(8,18):rand(-13,-8),r:fg?rand(2.6,6):rand(1.4,3),spd:rand(.2,.7),ph:Math.random()*Math.PI*2});
+  bokehMesh.setColorAt(i,tmpColor.setRGB(.45,.78,.95));
+}
+
+let audioCtx=null, masterGain=null, noiseBuf=null;
+function initAudio(){
+  if(audioCtx) return;
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    audioCtx=new AC();
+    masterGain=audioCtx.createGain();
+    masterGain.gain.value=.5;
+    masterGain.connect(audioCtx.destination);
+  }catch(e){}
+}
+function resumeAudio(){ if(audioCtx && audioCtx.state==="suspended") audioCtx.resume(); }
+function tone(freq,dur,type,vol,slideTo){
+  if(!audioCtx||muted) return;
+  const t=audioCtx.currentTime;
+  const o=audioCtx.createOscillator();
+  const g=audioCtx.createGain();
+  o.type=type||"sine";
+  o.frequency.setValueAtTime(freq,t);
+  if(slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(1,slideTo),t+dur);
+  g.gain.setValueAtTime(.0001,t);
+  g.gain.exponentialRampToValueAtTime(vol,t+.006);
+  g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  o.connect(g); g.connect(masterGain);
+  o.start(t); o.stop(t+dur+.02);
+}
+function getNoise(){
+  if(noiseBuf) return noiseBuf;
+  const len=(audioCtx.sampleRate*.4)|0;
+  const b=audioCtx.createBuffer(1,len,audioCtx.sampleRate);
+  const d=b.getChannelData(0);
+  for(let i=0;i<len;i++) d[i]=Math.random()*2-1;
+  noiseBuf=b;
+  return b;
+}
+function noiseBurst(dur,vol,freq,q){
+  if(!audioCtx||muted) return;
+  const t=audioCtx.currentTime;
+  const s=audioCtx.createBufferSource();
+  s.buffer=getNoise();
+  const bp=audioCtx.createBiquadFilter();
+  bp.type="bandpass";
+  bp.frequency.value=freq;
+  bp.Q.value=q||1;
+  const g=audioCtx.createGain();
+  g.gain.setValueAtTime(vol,t);
+  g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+  s.connect(bp); bp.connect(g); g.connect(masterGain);
+  s.start(t); s.stop(t+dur+.02);
+}
+function sfxPellet(c){ const f=440+Math.min(8,c)*55; tone(f,.11,"triangle",.22,f*1.5); }
+function sfxChomp(size,c){ tone(150+size*20,.14,"sine",.3,70); noiseBurst(.12,.25,700+c*60,1.2); tone(520+Math.min(8,c)*40,.1,"square",.12,760); }
+function sfxLevelUp(){
+  if(!audioCtx||muted) return;
+  [523.25,659.25,783.99,1046.5].forEach((f,i)=>setTimeout(()=>tone(f,.22,"triangle",.26,f*1.01),i*80));
+}
+function sfxGameOver(){
+  if(!audioCtx||muted) return;
+  [440,349.23,261.63,174.61].forEach((f,i)=>setTimeout(()=>tone(f,.4,"sawtooth",.2,f*.9),i*130));
+}
+function sfxClick(){ tone(660,.06,"square",.12,880); }
+
+function computeBounds(){
+  const dist=34;
+  const viewH=2*Math.tan(THREE.MathUtils.degToRad(camera.fov*.5))*dist;
+  const viewW=viewH*camera.aspect;
+  const margin=Math.max(1.25,Math.min(viewW,viewH)*.055);
+  bounds.width=viewW; bounds.height=viewH;
+  bounds.minX=-viewW*.5+margin; bounds.maxX=viewW*.5-margin;
+  bounds.minY=-viewH*.5+margin; bounds.maxY=viewH*.5-margin;
+}
+function respawnFood(i){
+  const f=foods[i];
+  let x=0,y=0;
+  for(let k=0;k<30;k++){
+    x=rand(bounds.minX,bounds.maxX);
+    y=rand(bounds.minY-3,bounds.maxY);
+    if(Math.hypot(x-player.position.x,y-player.position.y)>2.2) break;
+  }
+  f.x=x; f.y=y; f.z=rand(-1.2,1.2);
+  f.phase=Math.random()*Math.PI*2;
+  f.speed=.5+Math.random()*.9;
+  f.radius=.22+Math.random()*.12;
+  f.ci=(Math.random()*FOOD_TINTS.length)|0;
+  foodMesh.setColorAt(i,FOOD_TINTS[f.ci]);
+  foodColorDirty=true;
+}
+function snapFish(o,vx,vy){
+  const h=Math.atan2(vy,vx);
+  const left=vx<0;
+  o.userData.facingLeft=left;
+  o.userData.flip=left?1:0;
+  o.rotation.y=o.userData.flip*Math.PI;
+  o.rotation.z=left?(Math.PI-h):h;
+}
+function orientFish(o,vx,vy,dt,turn){
+  if(vx*vx+vy*vy<1e-7) return;
+  const h=Math.atan2(vy,vx);
+  if(vx>.02) o.userData.facingLeft=false;
+  else if(vx<-.02) o.userData.facingLeft=true;
+  const left=o.userData.facingLeft;
+  const tz=left?(Math.PI-h):h;
+  let dz=tz-o.rotation.z;
+  dz=Math.atan2(Math.sin(dz),Math.cos(dz));
+  o.rotation.z+=dz*Math.min(1,dt*turn);
+  const tf=left?1:0;
+  o.userData.flip+=(tf-o.userData.flip)*Math.min(1,dt*(turn*1.2));
+  o.rotation.y=o.userData.flip*Math.PI;
+}
+function animateFish(g,t,sf=1){
+  const tail=g.userData.tail, fins=g.userData.sideFins, body=g.userData.body;
+  if(tail) tail.rotation.z=Math.sin(t*9*sf+g.position.x*.3)*.34;
+  if(fins){
+    const fl=-.18+Math.sin(t*6.5*sf)*.22;
+    fins[0].rotation.z=fl; fins[1].rotation.z=fl;
+  }
+  if(body) body.scale.y=.62+Math.sin(t*8.2*sf+g.position.y)*.02;
+}
+function respawnEnemy(e,first=false){
+  let x,y;
+  const side=(Math.random()*4)|0;
+  if(side===0){x=bounds.minX-rand(2,6);y=rand(bounds.minY,bounds.maxY)}
+  else if(side===1){x=bounds.maxX+rand(2,6);y=rand(bounds.minY,bounds.maxY)}
+  else if(side===2){x=rand(bounds.minX,bounds.maxX);y=bounds.minY-rand(2,5)}
+  else{x=rand(bounds.minX,bounds.maxX);y=bounds.maxY+rand(2,5)}
+  if(first){
+    for(let k=0;k<50;k++){
+      x=rand(bounds.minX,bounds.maxX); y=rand(bounds.minY,bounds.maxY);
+      if(Math.hypot(x-player.position.x,y-player.position.y)>7) break;
     }
+  }
+  e.position.set(x,y,rand(-.25,.25));
+  e.userData.size=spawnSize();
+  e.scale.setScalar(e.userData.size);
+  e.userData.baseSpeed=1.3+Math.random()*1.1;
+  e.userData.phase=Math.random()*Math.PI*2;
+  const tx=rand(bounds.minX,bounds.maxX), ty=rand(bounds.minY,bounds.maxY);
+  e.userData.velocity.set(tx-x,ty-y).normalize();
+  snapFish(e,e.userData.velocity.x,e.userData.velocity.y);
+}
 
-    const player = createFish({ body: 0xff9d2d, fin: 0xffdb62, enemy: false });
-    player.position.set(0, 0, 0);
-    scene.add(player);
+function pulse(el){
+  el.style.transform="scale(1.3)";
+  clearTimeout(el._pt);
+  el._pt=setTimeout(()=>{el.style.transform="scale(1)"},120);
+}
+function worldToScreen(x,y,z){
+  camera.updateMatrixWorld();
+  tmpVec3.set(x,y,z).project(camera);
+  return {x:(tmpVec3.x*.5+.5)*window.innerWidth, y:(-tmpVec3.y*.5+.5)*window.innerHeight};
+}
+function popScore(wx,wy,text,big,fontPx){
+  const s=worldToScreen(wx,wy,0);
+  const d=document.createElement("div");
+  d.className="pop"+(big?" big":"");
+  d.textContent=text;
+  d.style.left=s.x+"px";
+  d.style.top=s.y+"px";
+  d.style.fontSize=(fontPx||(big?26:18))+"px";
+  popupsEl.appendChild(d);
+  d.addEventListener("animationend",()=>d.remove());
+}
+function flash(colorHex,strength,dur){
+  flashEl.style.background="#"+colorHex.toString(16).padStart(6,"0");
+  flashEl.animate([{opacity:strength},{opacity:0}],{duration:dur||450,easing:"ease-out"});
+}
+function banner(big,sub){
+  bannerBig.textContent=big;
+  bannerSub.textContent=sub||"";
+  bannerEl.classList.remove("play");
+  void bannerEl.offsetWidth;
+  bannerEl.classList.add("play");
+}
+function toast(msg){
+  toastEl.textContent=msg;
+  toastEl.classList.add("show");
+  clearTimeout(toastEl._t);
+  toastEl._t=setTimeout(()=>toastEl.classList.remove("show"),1700);
+}
+function addShake(a){ shake=Math.min(1.05,shake+a); }
+function updateStageUI(){
+  const st=STAGES[stageIndex], nx=STAGES[stageIndex+1];
+  stageNameTxt.textContent=st.name;
+  stageIco.textContent=st.icon;
+  let p=1;
+  if(nx) p=(playerScale-st.min)/(nx.min-st.min);
+  stageBar.style.width=clamp(p,0,1)*100+"%";
+}
+function updateComboUI(){
+  if(comboCount>=2 && comboTimer>0){
+    comboEl.classList.add("show");
+    comboMultEl.textContent=comboCount;
+    comboLabelEl.textContent="COMBO ×"+combo;
+    comboBar.style.width=clamp(comboTimer/COMBO_TIME,0,1)*100+"%";
+  }else{
+    comboEl.classList.remove("show");
+  }
+}
+function spawnBurst(x,y,z,color,count,power,sizeBase){
+  for(let n=0;n<count;n++){
+    const p=particleData[pIdx];
+    pIdx=(pIdx+1)%PARTICLE_COUNT;
+    const a=Math.random()*Math.PI*2, sp=power*(.4+Math.random()*.9);
+    p.x=x; p.y=y; p.z=z;
+    p.vx=Math.cos(a)*sp; p.vy=Math.sin(a)*sp+.5; p.vz=(Math.random()-.5)*sp*.4;
+    p.maxLife=.45+Math.random()*.5; p.life=p.maxLife;
+    p.size=sizeBase*(.6+Math.random()*.8);
+    p.r=color.r*(.8+Math.random()*.4); p.g=color.g*(.8+Math.random()*.4); p.b=color.b*(.8+Math.random()*.4);
+  }
+}
+function ringBurst(x,y,z,color,count,power){
+  for(let n=0;n<count;n++){
+    const p=particleData[pIdx];
+    pIdx=(pIdx+1)%PARTICLE_COUNT;
+    const a=n/count*Math.PI*2;
+    p.x=x; p.y=y; p.z=z;
+    p.vx=Math.cos(a)*power; p.vy=Math.sin(a)*power+.3; p.vz=0;
+    p.maxLife=.6+Math.random()*.4; p.life=p.maxLife;
+    p.size=.5+Math.random()*.35;
+    p.r=color.r; p.g=color.g; p.b=color.b;
+  }
+}
+function grow(a){
+  playerScale=Math.min(PLAYER_MAX_SCALE, playerScale+a);
+  player.scale.setScalar(playerScale);
+}
+function registerEat(){
+  comboCount++;
+  comboTimer=COMBO_TIME;
+  combo=Math.min(8,1+Math.floor(comboCount/3));
+  comboEl.classList.remove("bump");
+  void comboEl.offsetWidth;
+  comboEl.classList.add("bump");
+}
+function checkLevelUp(){
+  let ns=0;
+  for(let i=0;i<STAGES.length;i++) if(playerScale>=STAGES[i].min) ns=i;
+  if(ns>stageIndex){
+    stageIndex=ns;
+    const st=STAGES[ns];
+    banner(st.icon+" "+st.name,"EVOLVED!");
+    sfxLevelUp();
+    ringBurst(player.position.x,player.position.y,.3,new THREE.Color(st.color),28,4.1);
+    flash(st.color,.45,650);
+    addShake(.46);
+  }
+  updateStageUI();
+  player.userData.halo.material.color.set(STAGES[stageIndex].color);
+}
+function eatPellet(i){
+  const f=foods[i];
+  registerEat();
+  const gain=Math.round(10*combo);
+  score+=gain;
+  scoreEl.textContent=score;
+  pulse(scoreEl);
+  popScore(f.x,f.y,"+"+gain,combo>1,combo>1?20:16);
+  spawnBurst(f.x,f.y,f.z,FOOD_TINTS[f.ci],9,2.4,.32);
+  grow(.02);
+  sfxPellet(combo);
+  addShake(.06+combo*.008);
+  respawnFood(i);
+  checkLevelUp();
+}
+function eatFish(e){
+  registerEat();
+  const sz=e.userData.size;
+  const gain=Math.round((35+sz*22)*combo);
+  score+=gain;
+  scoreEl.textContent=score;
+  pulse(scoreEl);
+  popScore(e.position.x,e.position.y,"+"+gain,true,Math.min(42,24+sz*4));
+  const body=e.userData.body;
+  const col=(body && body.material) ? tmpColor.copy(body.material.color).lerp(WHITE,.35) : tmpColor.setRGB(1,.95,.7);
+  spawnBurst(e.position.x,e.position.y,e.position.z,col,Math.round(15+sz*8),3.4+sz*.45,.45+sz*.06);
+  grow(.05+sz*.03);
+  sfxChomp(sz,combo);
+  addShake(.2+Math.min(.32,sz*.055));
+  flash(0xffe9a6,.22,260);
+  respawnEnemy(e,false);
+  checkLevelUp();
+}
+function triggerGameOver(){
+  if(gameOver) return;
+  gameOver=true;
+  goAt=performance.now();
+  const beat=score>best;
+  if(beat){
+    best=score;
+    try{ localStorage.setItem("fishFrenzyBest_v2",String(best)); }catch(e){}
+  }
+  bestEl.textContent=best;
+  finalScoreEl.textContent=score;
+  finalBestEl.textContent=best;
+  finalStageEl.textContent=STAGES[stageIndex].name;
+  recordEl.classList.toggle("show",beat && score>0);
+  spawnBurst(player.position.x,player.position.y,0,new THREE.Color(0xff6a6a),28,4.7,.58);
+  sfxGameOver();
+  addShake(.75);
+  flash(0xff4444,.42,650);
+  dangerFlashEl.style.opacity="0";
+  gameOverEl.classList.remove("hidden");
+}
+function shareStr(){
+  return "🐠『フィッシュフレンジー』でスコア "+score+"（到達:"+STAGES[stageIndex].name+"）を達成！小さい魚を食べて海のヌシをめざす中毒系カジュアルゲーム🔥 #FishFrenzy";
+}
+function fullShareText(){
+  let s=shareStr();
+  if(location.protocol.indexOf("http")===0) s+="\n"+location.href;
+  return s;
+}
+function copyText(str){
+  if(navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(str);
+  return new Promise((res,rej)=>{
+    try{
+      const ta=document.createElement("textarea");
+      ta.value=str; ta.style.position="fixed"; ta.style.opacity="0";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      res();
+    }catch(err){ rej(err); }
+  });
+}
+function initWorld(){
+  computeBounds();
+  player.position.set(0,0,0);
+  player.rotation.set(0,0,0);
+  player.userData.flip=0;
+  player.userData.facingLeft=false;
+  player.userData.vx=0;
+  player.userData.vy=0;
+  pointerTarget.set(0,0);
+  pointerActive=true;
+  playerScale=1;
+  player.scale.setScalar(1);
+  score=0;
+  stageIndex=0;
+  comboCount=0;
+  combo=1;
+  comboTimer=0;
+  shake=0;
+  globalSpeed=1;
+  camBaseX=0;
+  camBaseY=0;
+  dangerPulse=0;
+  dangerFlashEl.style.opacity="0";
+  scoreEl.textContent=0;
+  bestEl.textContent=best;
+  updateStageUI();
+  comboEl.classList.remove("show");
+  player.userData.halo.material.color.set(STAGES[0].color);
+  for(let i=0;i<FOOD_COUNT;i++) respawnFood(i);
+  enemies.forEach(e=>respawnEnemy(e,true));
+  for(let i=0;i<TRAIL_COUNT;i++) trail[i].life=0;
+  for(let i=0;i<PARTICLE_COUNT;i++) particleData[i].life=0;
+  for(let i=0;i<BUBBLE_COUNT;i++){ bubbles[i].x=rand(bounds.minX,bounds.maxX); bubbles[i].y=rand(bounds.minY,bounds.maxY); }
+  updatePlankton(0,true);
+}
+function startGame(){
+  if(started) return;
+  initAudio();
+  resumeAudio();
+  started=true;
+  gameOver=false;
+  startScreen.classList.add("hidden");
+  gameOverEl.classList.add("hidden");
+  initWorld();
+  helpEl.classList.remove("hide");
+  setTimeout(()=>helpEl.classList.add("hide"),6500);
+}
+function restart(){
+  gameOver=false;
+  gameOverEl.classList.add("hidden");
+  recordEl.classList.remove("show");
+  initWorld();
+  resumeAudio();
+}
 
-    const foodGroup = new THREE.Group();
-    scene.add(foodGroup);
+function screenToWorld(cx,cy){
+  const nx=(cx/window.innerWidth)*2-1, ny=-(cy/window.innerHeight)*2+1;
+  tmpVec3.set(nx,ny,.5).unproject(camera);
+  const dir=tmpVec3.sub(camera.position).normalize();
+  const tt=-camera.position.z/dir.z;
+  return camera.position.clone().add(dir.multiplyScalar(tt));
+}
+function setPointerFromEvent(e){
+  const p=screenToWorld(e.clientX,e.clientY);
+  pointerTarget.set(clamp(p.x,bounds.minX,bounds.maxX),clamp(p.y,bounds.minY,bounds.maxY));
+  pointerActive=true;
+}
+window.addEventListener("pointerdown",(e)=>{
+  initAudio();
+  resumeAudio();
+  setPointerFromEvent(e);
+  if(e.target===renderer.domElement && renderer.domElement.setPointerCapture){
+    try{ renderer.domElement.setPointerCapture(e.pointerId); }catch(_){}
+  }
+},{passive:true});
+window.addEventListener("pointermove",(e)=>setPointerFromEvent(e),{passive:true});
+window.addEventListener("keydown",(e)=>{
+  const k=e.key.toLowerCase();
+  keys[k]=true;
+  if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k)) e.preventDefault();
+  if(!started && (e.key==="Enter"||e.key===" ")) startGame();
+  else if(gameOver && (e.key==="Enter"||e.key===" ")) restart();
+},{passive:false});
+window.addEventListener("keyup",(e)=>{keys[e.key.toLowerCase()]=false});
+window.addEventListener("blur",()=>{for(const k in keys) keys[k]=false});
+window.addEventListener("contextmenu",(e)=>e.preventDefault());
 
-    const foods = [];
-    const foodGeo = new THREE.SphereGeometry(0.17, 10, 8);
-    const foodMats = [
-      new THREE.MeshStandardMaterial({ color: 0xfff36c, emissive: 0xffcc38, emissiveIntensity: 0.7, roughness: 0.3 }),
-      new THREE.MeshStandardMaterial({ color: 0x9bffea, emissive: 0x42e8ff, emissiveIntensity: 0.55, roughness: 0.3 }),
-      new THREE.MeshStandardMaterial({ color: 0xff9de8, emissive: 0xff51c8, emissiveIntensity: 0.45, roughness: 0.3 })
-    ];
+startScreen.addEventListener("click",()=>startGame());
+$("startBtn").addEventListener("click",(e)=>{e.stopPropagation();startGame()});
+gameOverEl.addEventListener("click",()=>{ if(performance.now()-goAt>280) restart(); });
+$("restartBtn").addEventListener("click",(e)=>{e.stopPropagation();sfxClick();restart()});
+$("soundBtn").addEventListener("click",(e)=>{
+  e.stopPropagation();
+  muted=!muted;
+  $("soundBtn").textContent=muted?"🔇":"🔊";
+  if(!muted){ initAudio(); resumeAudio(); sfxClick(); }
+});
+$("copyBtn").addEventListener("click",(e)=>{
+  e.stopPropagation();
+  sfxClick();
+  copyText(fullShareText()).then(()=>toast("記録をコピーしました📋")).catch(()=>toast("コピーできませんでした"));
+});
+$("shareBtn").addEventListener("click",(e)=>{
+  e.stopPropagation();
+  sfxClick();
+  const data={title:"フィッシュフレンジー",text:shareStr()};
+  if(location.protocol.indexOf("http")===0) data.url=location.href;
+  if(navigator.share){
+    navigator.share(data).catch(()=>{});
+  }else{
+    copyText(fullShareText()).then(()=>toast("共有文をコピーしました📣")).catch(()=>toast("共有できませんでした"));
+  }
+});
+$("xBtn").addEventListener("click",(e)=>{
+  e.stopPropagation();
+  sfxClick();
+  let url="https://twitter.com/intent/tweet?text="+encodeURIComponent(shareStr());
+  if(location.protocol.indexOf("http")===0) url+="&url="+encodeURIComponent(location.href);
+  window.open(url,"_blank","noopener,noreferrer");
+});
 
-    for (let i = 0; i < 48; i++) {
-      const food = new THREE.Mesh(foodGeo, foodMats[i % foodMats.length]);
-      food.userData.phase = Math.random() * Math.PI * 2;
-      food.userData.speed = 0.08 + Math.random() * 0.18;
-      food.userData.radius = 0.18 + Math.random() * 0.09;
-      foods.push(food);
-      foodGroup.add(food);
+function keyboardDirection(){
+  let x=0,y=0;
+  if(keys["a"]||keys["arrowleft"]) x-=1;
+  if(keys["d"]||keys["arrowright"]) x+=1;
+  if(keys["w"]||keys["arrowup"]) y+=1;
+  if(keys["s"]||keys["arrowdown"]) y-=1;
+  tmpVec2.set(x,y);
+  if(tmpVec2.lengthSq()>0) tmpVec2.normalize();
+  return tmpVec2;
+}
+function updatePlayer(dt,t){
+  if(!started || gameOver){
+    animateFish(player,t,.6);
+    player.userData.vx=0; player.userData.vy=0;
+    player.position.z=Math.sin(t*1.5)*.1;
+    return;
+  }
+  const dir=keyboardDirection();
+  const kb=dir.lengthSq()>.001;
+  const px=player.position.x, py=player.position.y;
+  const speed=5.4*(1.32/(1+.17*(playerScale-1)));
+  if(kb){
+    pointerActive=false;
+    player.position.x+=dir.x*speed*dt;
+    player.position.y+=dir.y*speed*dt;
+  }else if(pointerActive){
+    const dx=pointerTarget.x-px, dy=pointerTarget.y-py, d=Math.hypot(dx,dy);
+    if(d>.02){
+      const step=Math.min(d,speed*dt);
+      player.position.x+=dx/d*step;
+      player.position.y+=dy/d*step;
     }
-
-    const enemies = [];
-    for (let i = 0; i < 5; i++) {
-      const enemy = createFish({
-        body: i % 2 ? 0x6b2d8f : 0x23436f,
-        fin: i % 2 ? 0xd856ff : 0x48a4d8,
-        enemy: true
-      });
-      enemy.userData.phase = Math.random() * Math.PI * 2;
-      enemy.userData.speed = 1.25 + Math.random() * 0.6;
-      enemy.userData.size = 1.42 + Math.random() * 0.45;
-      enemy.userData.aggro = 0.25 + Math.random() * 0.5;
-      enemy.userData.velocity = new THREE.Vector2(
-        Math.random() < 0.5 ? -1 : 1,
-        (Math.random() - 0.5) * 0.45
-      ).normalize();
-      enemy.scale.setScalar(enemy.userData.size);
-      enemies.push(enemy);
-      scene.add(enemy);
+  }
+  player.position.x=clamp(player.position.x,bounds.minX,bounds.maxX);
+  player.position.y=clamp(player.position.y,bounds.minY,bounds.maxY);
+  player.position.z=Math.sin(t*1.8)*.08;
+  const vx=player.position.x-px, vy=player.position.y-py;
+  player.userData.vx=vx; player.userData.vy=vy;
+  orientFish(player,vx,vy,dt,12);
+  animateFish(player,t,kb?1.4:1.05+Math.hypot(vx,vy)*8);
+}
+function spawnTrailBubble(){
+  const b=trail[trailIndex];
+  trailIndex=(trailIndex+1)%TRAIL_COUNT;
+  const back=1.2*playerScale;
+  const bx=player.userData.facingLeft?back:-back;
+  b.x=player.position.x+bx+rand(-.12,.12);
+  b.y=player.position.y+rand(-.16,.16);
+  b.z=player.position.z+rand(-.22,.22);
+  b.maxLife=.8+Math.random()*.6;
+  b.life=b.maxLife;
+  b.size=(.1+Math.random()*.16)*(.8+playerScale*.4);
+  b.vy=.4+Math.random()*.55;
+  b.sway=Math.random()*Math.PI*2;
+}
+function updateTrail(dt,t){
+  if(started && !gameOver){
+    const sp=Math.hypot(player.userData.vx||0,player.userData.vy||0);
+    trailTimer-=dt;
+    if(trailTimer<=0 && sp>.004){
+      spawnTrailBubble();
+      trailTimer=.05-Math.min(.025,sp*.4);
     }
-
-    const bubbleCount = 90;
-    const bubbleGeo = new THREE.SphereGeometry(0.08, 8, 6);
-    const bubbleMat = new THREE.MeshStandardMaterial({
-      color: 0xcdfaff,
-      transparent: true,
-      opacity: 0.46,
-      roughness: 0.08,
-      metalness: 0.0,
-      emissive: 0x4bdcff,
-      emissiveIntensity: 0.1
-    });
-    const bubbleMesh = new THREE.InstancedMesh(bubbleGeo, bubbleMat, bubbleCount);
-    bubbleMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    scene.add(bubbleMesh);
-
-    const bubbles = [];
-    for (let i = 0; i < bubbleCount; i++) {
-      bubbles.push({
-        x: 0,
-        y: 0,
-        z: -5 + Math.random() * 10,
-        r: 0.45 + Math.random() * 1.15,
-        speed: 1.0 + Math.random() * 1.9,
-        phase: Math.random() * Math.PI * 2
-      });
+  }
+  for(let i=0;i<TRAIL_COUNT;i++){
+    const b=trail[i];
+    if(b.life>0){
+      b.life-=dt;
+      b.y+=b.vy*dt;
+      b.x+=Math.sin(t*3+b.sway)*dt*.18;
+      const k=Math.max(0,b.life/b.maxLife);
+      const s=b.size*(.35+k*.95);
+      dummy.position.set(b.x,b.y,b.z);
+      dummy.rotation.set(0,0,0);
+      dummy.scale.setScalar(s);
+      dummy.updateMatrix();
+      trailMesh.setMatrixAt(i,dummy.matrix);
+      const c=k*.7;
+      trailMesh.setColorAt(i,tmpColor.setRGB(c*.65,c*.92,c));
+    }else{
+      dummy.scale.setScalar(0);
+      dummy.updateMatrix();
+      trailMesh.setMatrixAt(i,dummy.matrix);
+      trailMesh.setColorAt(i,tmpColor.setRGB(0,0,0));
     }
-
-    const planktonCount = 180;
-    const planktonGeo = new THREE.BufferGeometry();
-    const planktonPos = new Float32Array(planktonCount * 3);
-    const planktonSeed = new Float32Array(planktonCount);
-    for (let i = 0; i < planktonCount; i++) {
-      planktonSeed[i] = Math.random() * Math.PI * 2;
-      planktonPos[i * 3 + 2] = -8 + Math.random() * 9;
+  }
+  trailMesh.instanceMatrix.needsUpdate=true;
+  if(trailMesh.instanceColor) trailMesh.instanceColor.needsUpdate=true;
+}
+function updateFood(dt,t){
+  const pr=.9*playerScale;
+  for(let i=0;i<FOOD_COUNT;i++){
+    const f=foods[i];
+    f.x+=Math.sin(t*.6+f.phase)*dt*.3;
+    f.y+=(.25+f.speed)*dt;
+    f.z=Math.sin(t*1.1+f.phase)*.6;
+    if(f.y>bounds.maxY+1 || f.x<bounds.minX-1.5 || f.x>bounds.maxX+1.5) respawnFood(i);
+    const s=f.radius*2.6*(1+Math.sin(t*3+f.phase)*.18);
+    dummy.position.set(f.x,f.y,f.z);
+    dummy.rotation.set(0,0,t*.5+f.phase);
+    dummy.scale.setScalar(s);
+    dummy.updateMatrix();
+    foodMesh.setMatrixAt(i,dummy.matrix);
+    if(started && !gameOver && Math.hypot(f.x-player.position.x,f.y-player.position.y)<pr+f.radius+.2) eatPellet(i);
+  }
+  foodMesh.instanceMatrix.needsUpdate=true;
+  if(foodColorDirty && foodMesh.instanceColor){
+    foodMesh.instanceColor.needsUpdate=true;
+    foodColorDirty=false;
+  }
+}
+function updateEnemies(dt,t){
+  const pr=.9*playerScale;
+  dangerPulse=0;
+  for(let i=0;i<enemies.length;i++){
+    const e=enemies[i], u=e.userData, v=u.velocity;
+    const dx=player.position.x-e.position.x, dy=player.position.y-e.position.y;
+    const d=Math.hypot(dx,dy)||1;
+    const edible=u.size<playerScale*.95;
+    const danger=u.size>playerScale*1.06;
+    let spd=u.baseSpeed*globalSpeed;
+    if(started && !gameOver && edible && d<9){
+      v.x-=dx/d*2.4*dt; v.y-=dy/d*2.4*dt;
+      spd=Math.min(MAX_FISH_SPEED,(u.baseSpeed+1.0)*globalSpeed);
+    }else if(started && !gameOver && danger && d<16){
+      v.x+=dx/d*1.8*dt; v.y+=dy/d*1.8*dt;
+      spd=Math.min(MAX_FISH_SPEED,(u.baseSpeed+1.5)*globalSpeed);
+      dangerPulse=Math.max(dangerPulse,clamp(1-d/8,0,1));
+    }else{
+      const w=Math.sin(t*.7+u.phase)*.8*dt;
+      const cs=Math.cos(w), sn=Math.sin(w);
+      const nx=v.x*cs-v.y*sn, ny=v.x*sn+v.y*cs;
+      v.set(nx,ny);
     }
-    planktonGeo.setAttribute("position", new THREE.BufferAttribute(planktonPos, 3));
-    const plankton = new THREE.Points(
-      planktonGeo,
-      new THREE.PointsMaterial({
-        color: 0xb9f8ff,
-        size: 0.05,
-        transparent: true,
-        opacity: 0.55,
-        depthWrite: false
-      })
-    );
-    scene.add(plankton);
-
-    function rand(min, max) {
-      return min + Math.random() * (max - min);
+    if(e.position.x<bounds.minX) v.x+=1.4*dt;
+    if(e.position.x>bounds.maxX) v.x-=1.4*dt;
+    if(e.position.y<bounds.minY) v.y+=1.4*dt;
+    if(e.position.y>bounds.maxY) v.y-=1.4*dt;
+    v.normalize();
+    e.position.x+=v.x*spd*dt;
+    e.position.y+=v.y*spd*dt;
+    e.position.z=Math.sin(t*.9+u.phase)*.2;
+    if(e.position.x<bounds.minX-12 || e.position.x>bounds.maxX+12 || e.position.y<bounds.minY-12 || e.position.y>bounds.maxY+12){
+      respawnEnemy(e,false);
     }
+    orientFish(e,v.x,v.y,dt,4);
+    animateFish(e,t+u.phase,.7+spd*.25);
 
-    function distance2D(a, b) {
-      const dx = a.x - b.x;
-      const dy = a.y - b.y;
-      return Math.sqrt(dx * dx + dy * dy);
+    const halo=u.halo, mat=halo.material;
+    if(edible){
+      mat.color.set(0x5dff9b);
+      mat.opacity=(.4+(d<6?.35*(1-d/6):0))*(.85+.15*Math.sin(t*8+u.phase));
+    }else if(danger){
+      const near=d<7?(1-d/7):0;
+      mat.color.set(0xff5252);
+      mat.opacity=(.32+near*.55)*(.8+.2*Math.sin(t*(6+near*6)+u.phase));
+    }else{
+      mat.color.set(0x8fd8ff);
+      mat.opacity=.12;
     }
+    const hw=clamp(2.6+u.size*1.1, 3.0, 7.5)/u.size;
+    halo.scale.set(hw,hw,1);
 
-    function computeBounds() {
-      const dist = camera.position.z;
-      const viewH = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * dist;
-      const viewW = viewH * camera.aspect;
-      const margin = Math.max(1.25, Math.min(viewW, viewH) * 0.055);
-
-      bounds.width = viewW;
-      bounds.height = viewH;
-      bounds.minX = -viewW * 0.5 + margin;
-      bounds.maxX = viewW * 0.5 - margin;
-      bounds.minY = -viewH * 0.5 + margin;
-      bounds.maxY = viewH * 0.5 - margin;
-    }
-
-    function randomPointAwayFromPlayer(minDist = 4) {
-      let x = 0;
-      let y = 0;
-      for (let i = 0; i < 60; i++) {
-        x = rand(bounds.minX, bounds.maxX);
-        y = rand(bounds.minY, bounds.maxY);
-        if (Math.hypot(x - player.position.x, y - player.position.y) > minDist) break;
-      }
-      return { x, y };
-    }
-
-    function respawnFood(food) {
-      const p = randomPointAwayFromPlayer(2.3);
-      food.position.set(p.x, p.y, rand(-0.8, 1.5));
-      food.userData.phase = Math.random() * Math.PI * 2;
-      food.userData.speed = 0.08 + Math.random() * 0.18;
-      food.userData.radius = 0.16 + Math.random() * 0.1;
-      food.scale.setScalar(food.userData.radius / 0.18);
-    }
-
-    function snapFish(obj, vx, vy) {
-      const heading = Math.atan2(vy, vx);
-      const left = vx < 0;
-      obj.userData.facingLeft = left;
-      obj.userData.flip = left ? 1 : 0;
-      obj.rotation.y = obj.userData.flip * Math.PI;
-      obj.rotation.z = left ? (Math.PI - heading) : heading;
-    }
-
-    function orientFish(obj, vx, vy, dt, turn) {
-      if (vx * vx + vy * vy < 1e-7) return;
-
-      const heading = Math.atan2(vy, vx);
-
-      if (vx > 0.02) obj.userData.facingLeft = false;
-      else if (vx < -0.02) obj.userData.facingLeft = true;
-
-      const left = obj.userData.facingLeft;
-      const targetZ = left ? (Math.PI - heading) : heading;
-      let dz = targetZ - obj.rotation.z;
-      dz = Math.atan2(Math.sin(dz), Math.cos(dz));
-      obj.rotation.z += dz * Math.min(1, dt * turn);
-
-      const targetFlip = left ? 1 : 0;
-      obj.userData.flip += (targetFlip - obj.userData.flip) * Math.min(1, dt * (turn * 1.2));
-      obj.rotation.y = obj.userData.flip * Math.PI;
-    }
-
-    function respawnEnemy(enemy, first = false) {
-      const side = Math.floor(Math.random() * 4);
-      let x;
-      let y;
-
-      if (side === 0) {
-        x = bounds.minX - rand(2, 6);
-        y = rand(bounds.minY, bounds.maxY);
-      } else if (side === 1) {
-        x = bounds.maxX + rand(2, 6);
-        y = rand(bounds.minY, bounds.maxY);
-      } else if (side === 2) {
-        x = rand(bounds.minX, bounds.maxX);
-        y = bounds.minY - rand(2, 5);
-      } else {
-        x = rand(bounds.minX, bounds.maxX);
-        y = bounds.maxY + rand(2, 5);
-      }
-
-      if (first) {
-        const p = randomPointAwayFromPlayer(8);
-        x = p.x;
-        y = p.y;
-      }
-
-      enemy.position.set(x, y, rand(-0.25, 0.25));
-
-      const targetX = rand(bounds.minX, bounds.maxX);
-      const targetY = rand(bounds.minY, bounds.maxY);
-      enemy.userData.velocity.set(targetX - x, targetY - y).normalize();
-      enemy.userData.speed = 1.15 + Math.random() * 0.8;
-      enemy.userData.phase = Math.random() * Math.PI * 2;
-      snapFish(enemy, enemy.userData.velocity.x, enemy.userData.velocity.y);
-    }
-
-    function initWorld() {
-      computeBounds();
-
-      player.position.set(0, 0, 0);
-      player.rotation.set(0, 0, 0);
-      player.userData.flip = 0;
-      player.userData.facingLeft = false;
-
-      pointerTarget.set(0, 0);
-      pointerActive = true;
-      playerScale = 1;
-      player.scale.setScalar(playerScale);
-
-      score = 0;
-      scoreEl.textContent = score;
-      clearTimeout(scorePulseT);
-      scoreEl.style.transform = "scale(1)";
-
-      foods.forEach(respawnFood);
-      enemies.forEach(enemy => respawnEnemy(enemy, true));
-
-      for (let i = 0; i < bubbleCount; i++) {
-        bubbles[i].x = rand(bounds.minX, bounds.maxX);
-        bubbles[i].y = rand(bounds.minY, bounds.maxY);
-      }
-
-      updatePlankton(0, true);
-    }
-
-    function eatFood(food) {
-      score++;
-      scoreEl.textContent = score;
-      scoreEl.style.transform = "scale(1.28)";
-      clearTimeout(scorePulseT);
-      scorePulseT = setTimeout(() => {
-        scoreEl.style.transform = "scale(1)";
-      }, 120);
-
-      playerScale = Math.min(2.18, 1 + score * 0.022);
-      player.scale.setScalar(playerScale);
-      respawnFood(food);
-    }
-
-    function triggerGameOver() {
-      if (gameOver) return;
-      gameOver = true;
-      finalScoreEl.textContent = `スコア: ${score}`;
-      centerMessage.style.display = "flex";
-    }
-
-    function restart() {
-      gameOver = false;
-      centerMessage.style.display = "none";
-      initWorld();
-    }
-
-    function screenToWorld(clientX, clientY) {
-      const ndcX = (clientX / window.innerWidth) * 2 - 1;
-      const ndcY = -(clientY / window.innerHeight) * 2 + 1;
-      tmpVec3.set(ndcX, ndcY, 0.5).unproject(camera);
-      const dir = tmpVec3.sub(camera.position).normalize();
-      const t = -camera.position.z / dir.z;
-      return camera.position.clone().add(dir.multiplyScalar(t));
-    }
-
-    function setPointerFromEvent(e) {
-      const p = screenToWorld(e.clientX, e.clientY);
-      pointerTarget.set(
-        THREE.MathUtils.clamp(p.x, bounds.minX, bounds.maxX),
-        THREE.MathUtils.clamp(p.y, bounds.minY, bounds.maxY)
-      );
-      pointerActive = true;
-    }
-
-    window.addEventListener("pointerdown", (e) => {
-      setPointerFromEvent(e);
-      if (e.target === renderer.domElement && renderer.domElement.setPointerCapture) {
-        try {
-          renderer.domElement.setPointerCapture(e.pointerId);
-        } catch (_) {}
-      }
-    }, { passive: true });
-
-    window.addEventListener("pointermove", (e) => {
-      setPointerFromEvent(e);
-    }, { passive: true });
-
-    window.addEventListener("keydown", (e) => {
-      const key = e.key.toLowerCase();
-      keys[key] = true;
-
-      if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) {
-        e.preventDefault();
-      }
-
-      if (gameOver && (e.key === "Enter" || e.key === " ")) {
-        restart();
-      }
-    }, { passive: false });
-
-    window.addEventListener("keyup", (e) => {
-      keys[e.key.toLowerCase()] = false;
-    });
-
-    window.addEventListener("blur", () => {
-      for (const key in keys) keys[key] = false;
-    });
-
-    restartBtn.addEventListener("click", restart);
-
-    function keyboardDirection() {
-      let x = 0;
-      let y = 0;
-
-      if (keys["a"] || keys["arrowleft"]) x -= 1;
-      if (keys["d"] || keys["arrowright"]) x += 1;
-      if (keys["w"] || keys["arrowup"]) y += 1;
-      if (keys["s"] || keys["arrowdown"]) y -= 1;
-
-      tmpVec2.set(x, y);
-      if (tmpVec2.lengthSq() > 0) tmpVec2.normalize();
-      return tmpVec2;
-    }
-
-    function animateFish(group, t, speedFactor = 1) {
-      const tail = group.userData.tail;
-      const fins = group.userData.sideFins;
-      const body = group.userData.body;
-
-      if (tail) {
-        tail.rotation.z = Math.sin(t * 9.0 * speedFactor + group.position.x * 0.3) * 0.34;
-      }
-
-      if (fins) {
-        const flap = -0.18 + Math.sin(t * 6.5 * speedFactor) * 0.22;
-        fins[0].rotation.z = flap;
-        fins[1].rotation.z = flap;
-      }
-
-      if (body) {
-        body.scale.y = 0.62 + Math.sin(t * 8.2 * speedFactor + group.position.y) * 0.02;
-      }
-    }
-
-    function updatePlayer(dt, t) {
-      if (gameOver) {
-        animateFish(player, t, 0.5);
-        return;
-      }
-
-      const dir = keyboardDirection();
-      const keyboardMoving = dir.lengthSq() > 0.001;
-      const prevX = player.position.x;
-      const prevY = player.position.y;
-      const speed = 6.2 / Math.sqrt(playerScale);
-
-      if (keyboardMoving) {
-        pointerActive = false;
-        player.position.x += dir.x * speed * dt;
-        player.position.y += dir.y * speed * dt;
-      } else if (pointerActive) {
-        const dx = pointerTarget.x - player.position.x;
-        const dy = pointerTarget.y - player.position.y;
-        const dist = Math.hypot(dx, dy);
-
-        if (dist > 0.04) {
-          const step = Math.min(dist, speed * dt);
-          player.position.x += (dx / dist) * step;
-          player.position.y += (dy / dist) * step;
+    if(started && !gameOver){
+      const er=.8*u.size;
+      if(d<pr+er){
+        if(edible) eatFish(e);
+        else if(danger) triggerGameOver();
+        else{
+          const push=(pr+er-d);
+          e.position.x-=dx/d*push;
+          e.position.y-=dy/d*push;
         }
       }
-
-      player.position.x = THREE.MathUtils.clamp(player.position.x, bounds.minX, bounds.maxX);
-      player.position.y = THREE.MathUtils.clamp(player.position.y, bounds.minY, bounds.maxY);
-      player.position.z = Math.sin(t * 1.8) * 0.06;
-
-      const vx = player.position.x - prevX;
-      const vy = player.position.y - prevY;
-      orientFish(player, vx, vy, dt, 12);
-      animateFish(player, t, keyboardMoving ? 1.35 : 1.05);
     }
-
-    function updateFood(dt, t) {
-      const playerRadius = 0.86 * playerScale;
-
-      for (const food of foods) {
-        const phase = food.userData.phase;
-
-        food.position.x += Math.sin(t * 0.65 + phase) * dt * 0.22;
-        food.position.y += (Math.cos(t * 0.48 + phase * 1.7) * 0.12 + food.userData.speed * 0.22) * dt;
-        food.position.z = Math.sin(t * 1.2 + phase) * 0.55;
-        food.rotation.x += dt * 1.8;
-        food.rotation.y += dt * 1.2;
-        food.scale.setScalar((food.userData.radius / 0.18) * (1 + Math.sin(t * 3 + phase) * 0.08));
-
-        if (
-          food.position.y > bounds.maxY + 1.2 ||
-          food.position.x < bounds.minX - 1.2 ||
-          food.position.x > bounds.maxX + 1.2
-        ) {
-          food.position.y = bounds.minY - rand(0.6, 2.0);
-          food.position.x = rand(bounds.minX, bounds.maxX);
-        }
-
-        if (!gameOver && distance2D(player.position, food.position) < playerRadius + food.userData.radius + 0.14) {
-          eatFood(food);
-        }
-      }
+  }
+  dangerFlashEl.style.opacity=String(Math.min(.45,dangerPulse*.42));
+}
+function updateParticles(dt){
+  for(let i=0;i<PARTICLE_COUNT;i++){
+    const p=particleData[i];
+    if(p.life>0){
+      p.life-=dt;
+      p.vy+=.6*dt;
+      p.vx*=(1-1.6*dt); p.vy*=(1-.9*dt); p.vz*=(1-1.6*dt);
+      p.x+=p.vx*dt; p.y+=p.vy*dt; p.z+=p.vz*dt;
+      const k=Math.max(0,p.life/p.maxLife);
+      const s=p.size*(.3+k);
+      dummy.position.set(p.x,p.y,p.z);
+      dummy.rotation.set(0,0,0);
+      dummy.scale.set(s,s,s);
+      dummy.updateMatrix();
+      particleMesh.setMatrixAt(i,dummy.matrix);
+      const kk=k*k;
+      particleMesh.setColorAt(i,tmpColor.setRGB(p.r*kk,p.g*kk,p.b*kk));
+    }else{
+      dummy.scale.set(0,0,0);
+      dummy.updateMatrix();
+      particleMesh.setMatrixAt(i,dummy.matrix);
+      particleMesh.setColorAt(i,tmpColor.setRGB(0,0,0));
     }
-
-    function updateEnemies(dt, t) {
-      const playerRadius = 0.82 * playerScale;
-
-      for (const enemy of enemies) {
-        const v = enemy.userData.velocity;
-        const phase = enemy.userData.phase;
-
-        const wobble = Math.sin(t * 0.8 + phase) * 0.6 * dt;
-        const cs = Math.cos(wobble);
-        const sn = Math.sin(wobble);
-        const nx = v.x * cs - v.y * sn;
-        const ny = v.x * sn + v.y * cs;
-        v.set(nx, ny);
-
-        if (!gameOver) {
-          const sx = player.position.x - enemy.position.x;
-          const sy = player.position.y - enemy.position.y;
-          const sd = Math.hypot(sx, sy) || 1;
-          v.x += (sx / sd) * enemy.userData.aggro * dt;
-          v.y += (sy / sd) * enemy.userData.aggro * dt;
-        }
-
-        v.normalize();
-
-        enemy.position.x += v.x * enemy.userData.speed * dt;
-        enemy.position.y += v.y * enemy.userData.speed * dt;
-        enemy.position.z = Math.sin(t * 0.9 + phase) * 0.18;
-
-        if (
-          enemy.position.x < bounds.minX - 9 ||
-          enemy.position.x > bounds.maxX + 9 ||
-          enemy.position.y < bounds.minY - 8 ||
-          enemy.position.y > bounds.maxY + 8
-        ) {
-          respawnEnemy(enemy, false);
-        }
-
-        orientFish(enemy, v.x, v.y, dt, 5);
-        animateFish(enemy, t + phase, 0.7 + enemy.userData.speed * 0.25);
-
-        if (!gameOver) {
-          const enemyRadius = enemy.userData.size * 0.85;
-          if (distance2D(player.position, enemy.position) < playerRadius + enemyRadius) {
-            triggerGameOver();
-          }
+  }
+  particleMesh.instanceMatrix.needsUpdate=true;
+  if(particleMesh.instanceColor) particleMesh.instanceColor.needsUpdate=true;
+}
+function updateBubbles(dt,t){
+  for(let i=0;i<BUBBLE_COUNT;i++){
+    const b=bubbles[i];
+    b.y+=b.speed*dt;
+    b.x+=Math.sin(t*1.1+b.phase+b.y*.2)*dt*.35;
+    if(b.y>bounds.maxY+1.3){
+      b.y=bounds.minY-rand(.4,2.4);
+      b.x=rand(bounds.minX,bounds.maxX);
+      b.z=-5+Math.random()*10;
+      b.r=.45+Math.random()*1.15;
+      b.speed=1+Math.random()*1.9;
+    }
+    const s=b.r*(.72+.18*Math.sin(t*2.2+b.phase));
+    dummy.position.set(b.x,b.y,b.z);
+    dummy.rotation.set(0,0,0);
+    dummy.scale.setScalar(s);
+    dummy.updateMatrix();
+    bubbleMesh.setMatrixAt(i,dummy.matrix);
+  }
+  bubbleMesh.instanceMatrix.needsUpdate=true;
+}
+function updatePlankton(t,reset=false){
+  const pos=planktonGeo.attributes.position.array;
+  for(let i=0;i<PLANKTON_COUNT;i++){
+    const idx=i*3;
+    if(reset || pos[idx+1]<bounds.minY-1 || pos[idx+1]>bounds.maxY+1 || pos[idx]<bounds.minX-1 || pos[idx]>bounds.maxX+1){
+      pos[idx]=rand(bounds.minX,bounds.maxX);
+      pos[idx+1]=rand(bounds.minY,bounds.maxY);
+      pos[idx+2]=-8+Math.random()*9;
+    }else{
+      pos[idx]+=Math.sin(t*.35+planktonSeed[i])*.003;
+      pos[idx+1]+=.004+Math.cos(t*.29+planktonSeed[i])*.002;
+    }
+  }
+  planktonGeo.attributes.position.needsUpdate=true;
+}
+function updateBoids(dt,t){
+  const R=4.5, sepR=1.6;
+  const minX=bounds.minX*1.3, maxX=bounds.maxX*1.3, minY=bounds.minY*1.3, maxY=bounds.maxY*1.3;
+  for(let i=0;i<BOID_COUNT;i++){
+    const b=boids[i];
+    let ax=0,ay=0,cx=0,cy=0,sx=0,sy=0,n=0;
+    for(let j=0;j<BOID_COUNT;j++){
+      if(i===j) continue;
+      const dx=boids[j].x-b.x, dy=boids[j].y-b.y, d2=dx*dx+dy*dy;
+      if(d2<R*R){
+        ax+=boids[j].vx; ay+=boids[j].vy; cx+=boids[j].x; cy+=boids[j].y; n++;
+        if(d2<sepR*sepR){
+          const d=Math.sqrt(d2)||.01;
+          sx-=dx/d; sy-=dy/d;
         }
       }
     }
-
-    function updateBubbles(dt, t) {
-      for (let i = 0; i < bubbleCount; i++) {
-        const b = bubbles[i];
-
-        b.y += b.speed * dt;
-        b.x += Math.sin(t * 1.1 + b.phase + b.y * 0.2) * dt * 0.35;
-
-        if (b.y > bounds.maxY + 1.3) {
-          b.y = bounds.minY - rand(0.4, 2.4);
-          b.x = rand(bounds.minX, bounds.maxX);
-          b.z = -5 + Math.random() * 10;
-          b.r = 0.45 + Math.random() * 1.15;
-          b.speed = 1.0 + Math.random() * 1.9;
-        }
-
-        const s = b.r * (0.72 + 0.18 * Math.sin(t * 2.2 + b.phase));
-        dummy.position.set(b.x, b.y, b.z);
-        dummy.scale.setScalar(s);
-        dummy.updateMatrix();
-        bubbleMesh.setMatrixAt(i, dummy.matrix);
-      }
-
-      bubbleMesh.instanceMatrix.needsUpdate = true;
+    if(n>0){
+      ax/=n; ay/=n; cx=cx/n-b.x; cy=cy/n-b.y;
+      b.vx+=(ax-b.vx)*.4*dt+cx*.25*dt+sx*1.2*dt;
+      b.vy+=(ay-b.vy)*.4*dt+cy*.25*dt+sy*1.2*dt;
     }
-
-    function updatePlankton(t, reset = false) {
-      const pos = planktonGeo.attributes.position.array;
-
-      for (let i = 0; i < planktonCount; i++) {
-        const idx = i * 3;
-
-        if (
-          reset ||
-          pos[idx + 1] < bounds.minY - 1 ||
-          pos[idx + 1] > bounds.maxY + 1 ||
-          pos[idx] < bounds.minX - 1 ||
-          pos[idx] > bounds.maxX + 1
-        ) {
-          pos[idx] = rand(bounds.minX, bounds.maxX);
-          pos[idx + 1] = rand(bounds.minY, bounds.maxY);
-          pos[idx + 2] = -8 + Math.random() * 9;
-        } else {
-          pos[idx] += Math.sin(t * 0.35 + planktonSeed[i]) * 0.003;
-          pos[idx + 1] += 0.004 + Math.cos(t * 0.29 + planktonSeed[i]) * 0.002;
-        }
-      }
-
-      planktonGeo.attributes.position.needsUpdate = true;
+    b.vx+=Math.cos(t*.5+i)*.2*dt;
+    b.vy+=Math.sin(t*.4+i*1.3)*.2*dt;
+    if(b.x<minX)b.vx+=1*dt;
+    if(b.x>maxX)b.vx-=1*dt;
+    if(b.y<minY)b.vy+=1*dt;
+    if(b.y>maxY)b.vy-=1*dt;
+    const dxp=b.x-player.position.x, dyp=b.y-player.position.y, dp=Math.hypot(dxp,dyp);
+    if(dp<5 && started && dp>.001){
+      b.vx+=dxp/dp*1.5*dt;
+      b.vy+=dyp/dp*1.5*dt;
     }
+    const sp=Math.hypot(b.vx,b.vy), mx=3.2, mn=1.2;
+    if(sp>mx){ b.vx=b.vx/sp*mx; b.vy=b.vy/sp*mx; }
+    else if(sp<mn && sp>.001){ b.vx=b.vx/sp*mn; b.vy=b.vy/sp*mn; }
+    b.x+=b.vx*dt; b.y+=b.vy*dt;
+    if(b.x<minX-2)b.x=maxX+2;
+    if(b.x>maxX+2)b.x=minX-2;
+    if(b.y<minY-2)b.y=maxY+2;
+    if(b.y>maxY+2)b.y=minY-2;
+    dummy.position.set(b.x,b.y,b.z);
+    dummy.rotation.set(0,0,Math.atan2(b.vy,b.vx));
+    dummy.scale.set(1,1,1);
+    dummy.updateMatrix();
+    boidMesh.setMatrixAt(i,dummy.matrix);
+  }
+  boidMesh.instanceMatrix.needsUpdate=true;
+}
+function updateBokeh(dt,t){
+  const minX=bounds.minX*1.6, maxX=bounds.maxX*1.6, minY=bounds.minY*1.6, maxY=bounds.maxY*1.6;
+  for(let i=0;i<BOKEH_COUNT;i++){
+    const k=bokeh[i];
+    k.y+=k.spd*dt;
+    k.x+=Math.sin(t*.3+k.ph)*dt*.4;
+    if(k.y>maxY+k.r){ k.y=minY-k.r; k.x=rand(minX,maxX); }
+    if(k.x<minX-k.r) k.x=maxX+k.r;
+    if(k.x>maxX+k.r) k.x=minX-k.r;
+    const s=k.r*(.92+.08*Math.sin(t*.8+k.ph));
+    dummy.position.set(k.x,k.y,k.z);
+    dummy.rotation.set(0,0,0);
+    dummy.scale.set(s,s,s);
+    dummy.updateMatrix();
+    bokehMesh.setMatrixAt(i,dummy.matrix);
+  }
+  bokehMesh.instanceMatrix.needsUpdate=true;
+}
+function updateLights(t){
+  glowLight.position.x=Math.sin(t*.43)*bounds.width*.22;
+  glowLight.position.y=bounds.maxY*.45+Math.sin(t*.7)*1.4;
+  glowLight.position.z=7+Math.cos(t*.5)*2;
+  sun.position.x=-8+Math.sin(t*.25)*4;
+  sun.position.y=14+Math.cos(t*.2)*2;
+}
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),.033);
+  const t=clock.elapsedTime;
 
-    function updateLights(t) {
-      glowLight.position.x = Math.sin(t * 0.43) * bounds.width * 0.22;
-      glowLight.position.y = bounds.maxY * 0.45 + Math.sin(t * 0.7) * 1.4;
-      glowLight.position.z = 7 + Math.cos(t * 0.5) * 2;
+  globalSpeed=1+Math.min(.62,score/3200);
+  bgUniforms.uTime.value=t;
 
-      sun.position.x = -8 + Math.sin(t * 0.25) * 4;
-      sun.position.y = 14 + Math.cos(t * 0.2) * 2;
-    }
+  for(let i=0;i<rays.length;i++){
+    rays[i].material.uniforms.uTime.value=t;
+    rays[i].position.x=-bounds.width*.52+i*bounds.width/6+Math.sin(t*.18+i)*.55;
+  }
 
-    function animate() {
-      requestAnimationFrame(animate);
+  updateLights(t);
 
-      const dt = Math.min(clock.getDelta(), 0.033);
-      const t = clock.elapsedTime;
+  if(started && !gameOver){
+    comboTimer-=dt;
+    if(comboTimer<=0){ comboCount=0; combo=1; }
+  }
 
-      bgUniforms.uTime.value = t;
+  updatePlayer(dt,t);
+  updateTrail(dt,t);
+  updateFood(dt,t);
+  updateEnemies(dt,t);
+  updateParticles(dt);
+  updateBubbles(dt,t);
+  updatePlankton(t,false);
+  updateBoids(dt,t);
+  updateBokeh(dt,t);
+  updateComboUI();
 
-      rays.forEach((ray, i) => {
-        ray.material.uniforms.uTime.value = t;
-        ray.position.x = -bounds.width * 0.52 + i * bounds.width / 6 + Math.sin(t * 0.18 + i) * 0.55;
-      });
+  const ph=player.userData.halo;
+  const phw=clamp(2.2+playerScale*.9, 2.6, 6.5)/playerScale;
+  ph.scale.set(phw,phw,1);
+  ph.material.opacity=(gameOver?.16:.42)+.16*Math.sin(t*4);
 
-      updateLights(t);
-      updatePlayer(dt, t);
-      updateFood(dt, t);
-      updateEnemies(dt, t);
-      updateBubbles(dt, t);
-      updatePlankton(t);
+  camBaseX+=(player.position.x*.06-camBaseX)*Math.min(1,dt*2.4);
+  camBaseY+=(player.position.y*.06-camBaseY)*Math.min(1,dt*2.4);
+  shake=Math.max(0,shake-dt*1.8);
+  const sh=shake*shake*1.4;
+  camera.position.x=camBaseX+(Math.random()-.5)*sh;
+  camera.position.y=camBaseY+(Math.random()-.5)*sh;
+  camera.position.z=34+(Math.random()-.5)*sh*.6;
+  camera.lookAt(camBaseX,camBaseY,0);
 
-      camera.position.x += (player.position.x * 0.035 - camera.position.x) * Math.min(1, dt * 2.2);
-      camera.position.y += (player.position.y * 0.035 - camera.position.y) * Math.min(1, dt * 2.2);
-      camera.lookAt(camera.position.x, camera.position.y, 0);
+  renderer.render(scene,camera);
+}
+function onResize(){
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,DPR_CAP));
+  renderer.setSize(window.innerWidth,window.innerHeight);
+  bgUniforms.uAspect.value=camera.aspect;
+  computeBounds();
+  background.scale.setScalar(Math.max(1,camera.aspect));
+  pointerTarget.set(clamp(pointerTarget.x,bounds.minX,bounds.maxX),clamp(pointerTarget.y,bounds.minY,bounds.maxY));
+}
+window.addEventListener("resize",onResize);
 
-      renderer.render(scene, camera);
-    }
-
-    function onResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-      renderer.setSize(window.innerWidth, window.innerHeight);
-
-      bgUniforms.uAspect.value = camera.aspect;
-      computeBounds();
-
-      background.scale.setScalar(Math.max(1, camera.aspect));
-
-      pointerTarget.set(
-        THREE.MathUtils.clamp(pointerTarget.x, bounds.minX, bounds.maxX),
-        THREE.MathUtils.clamp(pointerTarget.y, bounds.minY, bounds.maxY)
-      );
-    }
-
-    window.addEventListener("resize", onResize);
-
-    onResize();
-    initWorld();
-    animate();
-  </script>
+onResize();
+initWorld();
+animate();
+</script>
 </body>
 </html>
