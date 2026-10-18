@@ -6,7 +6,7 @@ A juicy underwater arcade game that runs in the browser. Eat smaller fish to gro
 
 ## Play
 
-- **Live:** https://sakanagame.1qaz.jp
+- **Live:** https://masafykun.github.io/sakana-game/
 - **Mirror:** https://masafykun.github.io/sakana-game/
 - **Local:** clone and open `index.html` (no build step, no install)
 
